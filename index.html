@@ -69,7 +69,87 @@
     <script>
 
     </script>
-    <div id="script"></div> 
+    <div id="script"></div>
+    <div id="characters" style="display: none">
+Han Solo
+(Queen) Leia
+Luke Skywalker
+Luke
+Rey (Kira)
+Finn
+Kylo Ren
+Poe Dameron
+Rose
+Chewbacca
+C-3PO
+<!--The--> General (Gleeson)
+Uber (Serkis)
+R2-D2
+BB-8
+    </div>
+    <div id="characters-minor" style="display: none">
+        <!--Wounded Stormtrooper (Village)
+        The Vicar
+        Junk Dealer
+        Junk Minion 1
+        Snowtrooper #12 (Falcon)
+        Salvage Station Bully (Desert Set)
+        Scared Villager
+        Captain Phasma
+        Star Destroyer Colonel
+        Rose’s Pub Barman (C049)
+        Evil Castle Teach #1
+        Brance (Rebel)
+        Rebel 1 Major Ematt
+        Rebel 2 Captain Trilla
+        Rebel Admiral
+        Evil Castle Officer #1
+        Evil Castle Officer #2
+        Gorwyn (Rebel Pilot)
+        Rebel Pilot #1 (Duncan)
+        Evil Castle Tech (Weapons)
+        Stormtrooper #1 (Village)
+        Star Destroyer Bridge Teach #2
+        Stormtrooper 2 (Village)
+        Gang member Mod #1
+        Gang member Rocker #1
+        “Bus Stop” Mother
+        “Bus Stop” Son
+        Lieutenant Mitaka
+        Ruddo
+        Emissary
+        Naka (Flashback)
+        Local Trader (Flashback)
+        Young Luke Skywalker (Flashback)
+        Stormtrooper #10
+        Rebel Pilot
+        Rebel Pilot N.N.
+        Rebel Pilot #3
+        Statura
+        Rebel Tech #1
+        Rebel Tech #2
+        Captain Trilla
+        Stormtrooper #11
+        Stormtrooper #3 (Kylo Ren’s Request)
+        Stormtrooper #5 (Woods)
+        Snowtrooper #7 (Snow Steal)
+        Stormtrooper #8 (Door to Ramparts)
+        Evil Castle Tech (Scared)
+        Star Destroyer Bridge Tech #1
+        Star Destroyer Technician
+        Evil Castle Tech #4
+        Evil Castle Tech #5
+        Salvage Station Bully 2
+        Gang Member Rocker #2
+        Rose’s Pub Patron #1
+        Rose’s Pub Patron #2
+        Rose’s Pub Patron #3
+        Fat Cat (Flashback)
+        Gangsters Mill
+        Rebel Tech #3
+        Dr. Kalonia
+        Rebel Tech. #4-->
+    </div>
 
     <div id="main-chart"></div>
     <div id="filter">
@@ -213,6 +293,13 @@
               var wordCount =  data [(data.length-1)]["WORD_INDEX"];
               var sectionCount = data [(data.length-1)]["SCRIPT_SECTION"];
               var sectionedScript = document.getElementById('script');
+              var punctuation  = [',', '.', '!', '?', '\''];
+              var endpunctuation =  ['.', '!', '?'];
+              var contractions = ['\'ve', '\'m', '\'ll', '\'re', '\'s', '\'t', 'n\'t'];
+              var capitals = ['i'];
+              var namesString = document.getElementById('characters').innerText;
+              var namesList = namesString.split(/(\s+)/);
+              //console.log(namesList);
 
               for (var i = 1; i < (sectionCount + 1); i++) {
                 var sectionSpan = document.createElement('span');
@@ -221,13 +308,31 @@
                 sectionedScript.append(sectionSpan);
               }
 
+
               for (var j = 0; j < wordCount; j++) {
                 var selectedWord = data [j]["WORD"];
                 var section = data [j]["SCRIPT_SECTION"];
                 var selectedSpan = document.getElementById('script-section-' + section);
                 // console.log(selectedSpan);
                 // console.log(selectedWord);
-                selectedSpan.append(document.createTextNode(selectedWord + " "));
+
+                if (punctuation.includes(selectedWord) || contractions.includes(selectedWord)) {
+                    selectedSpan.append(document.createTextNode(selectedWord));
+                } else if (j != 0 && endpunctuation.includes(data [j-1]["WORD"])) {
+                    selectedSpan.append(document.createTextNode(' ' + selectedWord[0].toUpperCase() + selectedWord.slice(1)));
+                } else if (capitals.includes(selectedWord) || j == 0) {
+                    selectedSpan.append(document.createTextNode(' ' + selectedWord.toUpperCase()));
+                } else if (namesList.includes(selectedWord[0].toUpperCase() + selectedWord.slice(1))) {
+                    console.log(selectedWord);
+                    selectedSpan.append(document.createTextNode(' ' + selectedWord[0].toUpperCase() + selectedWord.slice(1)));
+                } else {
+                    selectedSpan.append(document.createTextNode(' ' + selectedWord));
+                    //console.log(selectedWord[0].toUpperCase() + selectedWord.slice(1));
+                }
+
+                // if (this word is followed by a newline) {
+                    // selectedSpan.append(document.createTextNode('\n');
+                //}
               }
 
             });
