@@ -87,6 +87,7 @@ C-3PO
 Uber (Serkis)
 R2-D2
 BB-8
+Jedi
     </div>
     <div id="characters-minor" style="display: none">
         <!--Wounded Stormtrooper (Village)
@@ -156,6 +157,10 @@ BB-8
     <div id="filter">
         <div id="dependent-selector"></div>
         <div id="text-search"></div>
+        <div id="slider">
+            <div id="input"></div>
+            <div id="output"></div>
+        </div>
     </div>
     <script>
 
@@ -213,9 +218,11 @@ BB-8
 
             //dimension defines a dimension
             //builds x axis based on what "key" is
-            var independentAxis = function(table, chart, key) {
+            var independentAxis = function(table, chart, key, bin) {
+                bin = bin || 100;
+
                 var modifyAxis = function(d) {
-                    return Math.floor(+d[key]/100);
+                    return Math.floor(+d[key]/bin);
                 }
 
                 var dim = table.dimension(modifyAxis);
@@ -295,18 +302,38 @@ BB-8
                 );
             });
 
+            var slider = document.getElementById('input');
+            var slideTest = document.createElement('input');
+            slideTest.setAttribute('type','range');
+            slideTest.setAttribute('min','5');
+            slideTest.setAttribute('max','1000');
+            slideTest.setAttribute('step','5');
+            slideTest.setAttribute('value','100');
+            slideTest.oninput = function () {
+                console.log(this.value);
+                var out = document.getElementById('output');
+                out.innerHTML = 'Words per script section: ' + this.value;
+                indepDim = independentAxis(cfTable, chart, "ORIGINAL_SCRIPT_WORD_INDEX",slideTest.value)
+                dependentAxis(indepDim, chart, sel.options[sel.selectedIndex].value);
+                indepDim.dispose();
+            }
+            slider.appendChild(slideTest);
+            document.getElementById('output').innerHTML = 'Words per script section: ' + slideTest.value;
+
+            //default chart rendered onload; 1 is positive match as y-axis
             dependentAxis(indepDim, chart, keys[1]);
 
             d3.csv('data.csv', function(data) {
+                var binSize = 100;
                 var wordCount =  data [(data.length-1)]["ORIGINAL_SCRIPT_WORD_INDEX"];
                 //var sectionCount = data [(data.length-1)]["SCRIPT_SECTION"];
-                var sectionCount = Math.floor(wordCount/100) + 1;
+                var sectionCount = Math.floor(wordCount/binSize) + 1;
                 var sectionedScript = document.getElementById('script');
 
                 //for script formatting
                 var punctuation  = [',', '.', '!', '?', '\''];
                 var endpunctuation =  ['.', '!', '?'];
-                var contractions = ['\'ve', '\'m', '\'ll', '\'re', '\'s', '\'t', 'n\'t'];
+                var contractions = ['\'ve', '\'m', '\'ll', '\'re', '\'s', '\'t', 'n\'t', 'na'];
                 var capitals = ['i'];
                 var namesString = document.getElementById('characters').innerText;
                 var namesList = namesString.split(/(\s+)/);
@@ -326,7 +353,7 @@ BB-8
                     }
 
                     var wordIndex = data [j]["ORIGINAL_SCRIPT_WORD_INDEX"];
-                    var section = Math.floor(wordIndex / 100);
+                    var section = Math.floor(wordIndex / binSize);
                     //var section = data [j]["SCRIPT_SECTION"];
                     var selectedSpan = document.getElementById('script-section-' + section);
 
@@ -355,6 +382,9 @@ BB-8
         <div id="fanwork">
             <h1> Insert matches here </h1>
         </div>
+        <script>
+
+        </script>
         </div>
 
         </div>
