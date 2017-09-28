@@ -290,7 +290,7 @@ BB-8
             dependentAxis(indepDim, chart, keys[0]);
 
             d3.csv('data.csv', function(data) {
-              var wordCount =  data [(data.length-1)]["WORD_INDEX"];
+              var wordCount =  data [(data.length-1)]["ORIGINAL_SCRIPT_WORD_INDEX"];
               var sectionCount = data [(data.length-1)]["SCRIPT_SECTION"];
               var sectionedScript = document.getElementById('script');
               var punctuation  = [',', '.', '!', '?', '\''];
@@ -300,6 +300,7 @@ BB-8
               var namesString = document.getElementById('characters').innerText;
               var namesList = namesString.split(/(\s+)/);
               //console.log(namesList);
+              //console.log(sectionCount);
 
               for (var i = 1; i < (sectionCount + 1); i++) {
                 var sectionSpan = document.createElement('span');
@@ -310,11 +311,26 @@ BB-8
 
 
               for (var j = 0; j < wordCount; j++) {
-                var selectedWord = data [j]["WORD"];
+                var selectedWord = data [j]["ORIGINAL_SCRIPT_WORD"];
+                //test for empty words
+                if (selectedWord == '') {
+                    //console.log(selectedWord);
+                    selectedWord = data [j]["LOWERCASE"];
+                    console.log(selectedWord);
+                }
+
                 var section = data [j]["SCRIPT_SECTION"];
+                //var wordIndex = data [j]["ORIGINAL_SCRIPT_WORD_INDEX"]
+                //var section = wordIndex % sectionCount + 1;
                 var selectedSpan = document.getElementById('script-section-' + section);
                 // console.log(selectedSpan);
                 // console.log(selectedWord);
+
+
+                //speaker tags
+                if (j != 0 && (data [j]["CHARACTER"] != data [j-1]["CHARACTER"])) {
+                    selectedSpan.append(document.createTextNode(' ' + data [j]["CHARACTER"] + ': '));
+                }
 
                 if (punctuation.includes(selectedWord) || contractions.includes(selectedWord)) {
                     selectedSpan.append(document.createTextNode(selectedWord));
@@ -323,8 +339,10 @@ BB-8
                 } else if (capitals.includes(selectedWord) || j == 0) {
                     selectedSpan.append(document.createTextNode(' ' + selectedWord.toUpperCase()));
                 } else if (namesList.includes(selectedWord[0].toUpperCase() + selectedWord.slice(1))) {
-                    console.log(selectedWord);
+                    //console.log(selectedWord);
                     selectedSpan.append(document.createTextNode(' ' + selectedWord[0].toUpperCase() + selectedWord.slice(1)));
+                } else if (selectedWord == 0) {
+                    selectedSpan.append(document.createElement('br'));
                 } else {
                     selectedSpan.append(document.createTextNode(' ' + selectedWord));
                     //console.log(selectedWord[0].toUpperCase() + selectedWord.slice(1));
