@@ -7,6 +7,7 @@
     <script src="https://dc-js.github.io/dc.js/js/dc.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/reductio/0.6.3/reductio.js"></script>
     <script src="https://npmcdn.com/universe@latest/universe.js"></script>
+    <script src="https://cdn.jsdelivr.net/lodash/4.17.4/lodash.min.js"></script>
     <style>
         #content, html, body {
             height: 98%;
@@ -35,6 +36,10 @@
         }
         .highlight {
             background-color: rgba(16, 96, 255, .5);
+            font-weight: bold;
+        }
+        .word-highlight {
+            background-color: rgba(255, 255, 51, .5);
             font-weight: bold;
         }
         .match.intensity-0 {
@@ -74,19 +79,52 @@
     <div id="characters" style="display: none">
 Han Solo
 (Queen) Leia
+Leia Organa
 Luke Skywalker
 Luke
 Rey (Kira)
 Finn
 Kylo Ren
 Poe Dameron
-Rose
 Chewbacca
+Chewie
 C-3PO
 <!--The--> General (Gleeson)
 Uber (Serkis)
 R2-D2
 BB-8
+<!--minor things-->
+Stormtroopers
+Stormtrooper
+Jedi
+Jakku
+Star Wars
+Kelvin
+Teedo
+Hux
+Corellian
+Harris
+Ponemah
+Ileenium
+Ducain
+Kessel
+Rathtars
+Rathtar
+Bala
+Tik
+Sith
+Trillia
+Prana
+Nantoon
+Kanjiklub
+Mr.
+Maz Kanata
+Vader
+Darth Vader
+Phasma
+Plutt
+Goazon
+Snoke
     </div>
     <div id="characters-minor" style="display: none">
         <!--Wounded Stormtrooper (Village)
@@ -165,6 +203,22 @@ BB-8
             var countAccessor = function(d) { return d.value.count; };
             var sumAccessor = function(d) { return d.value.sum; };
 
+            // var topKeywords = function(table, key) {
+            //     var col = table.map(function(d) { return d[key]; });
+            //     // col = _.flatMap(col, function(d) { return d.split(" "); });
+            //     // col = _.filter(col, function(d) { return !stopwordList.hasOwnProperty(d.toLowerCase()); } );
+            //     words = _.countBy(col, function(d) {
+            //         return d.toLowerCase()
+            //                 .replace('.', '')
+            //                 .replace(',', '')
+            //                 .replace('-', '');
+            //     });
+            //     return _.sortBy(
+            //         Object.keys(words),
+            //         function(d) { return -words[d]; }
+            //     );
+            // }
+
             //d = key, i = value (both from data)
 
             //check if values are numbers
@@ -180,7 +234,7 @@ BB-8
                     }
                 }
                 return true;
-            }
+            };
 
             //use filter function?
 
@@ -188,9 +242,11 @@ BB-8
             var reduceOnKey = function(dim, key) {
                 return dim.group().reduce(
                     function(p, v) {
-                        p.count += 1; p.sum += +v[key]; return p; },
+                        p.count += 1; p.sum += +v[key]; return p; console.log(v[key]);},
+
                     function(p, v) {
-                        p.count -= 1; p.sum -= +v[key]; return p; },
+                        p.count -= 1; p.sum -= +v[key]; return p; console.log(v[key]);},
+
                     function() {
                         var p = {}; p.count = 0; p.sum = 0; return p; });
             };
@@ -232,20 +288,22 @@ BB-8
 
             var dependentAxis = function(dim, chart, key, sub) {
                 sub = sub || "";
+                console.log(sub);
 
                 var group;
-                if (likelyNumeric(rawTable, key)) {
+                if (likelyNumeric (rawTable, key)) {
                     group = reduceOnKey(dim, key);
                 } else {
                     group = reduceOnKeySubstring(dim, key, sub);
+                    // var hints = topKeywords(rawTable, key).slice(0, 10);
+                    // console.log(hints);
                 }
 
                 //reduce function sums up all matches (values) of keys at certain
                 //script section
                 var all = group.all().map(sumAccessor);
-                // console.log(all);
+                console.log(all);
                 chart.y(d3.scale.linear().domain([0, d3.max(all)]));
-                // console.log(d3.max(all));
                 chart.yAxisLabel(key).group(group);
                 chart.render();
             }
@@ -256,7 +314,8 @@ BB-8
                  .gap(0)
                  .on("renderlet.chart", function(chart) {
                      chart.selectAll('rect').on('click', function(d) {
-                     //console.log(d.data.key);
+                     console.log(d.data.value);
+                     console.log("key: " + d.data.key);
                      var highlights = document.getElementsByClassName('highlight');
                      for (var c = 0; c < highlights.length; c++) {
                          highlights[c].setAttribute('class','script-section');
@@ -264,8 +323,47 @@ BB-8
                      var currentSpan = document.getElementById('script-section-' + d.data.key);
                      currentSpan.scrollIntoView();
                      currentSpan.setAttribute('class','script-sections highlight');
+
+                     var wordHighlights = document.getElementsByClassName('word-highlight');
+                     for (var a = 0; a < wordHighlights.length; a++) {
+                         wordHighlights[a].setAttribute('class','words');
+                     }
+
+                     d3.csv('data.csv', function(data) {
+                        var scriptSection = d.data.key;
+                        console.log(textBox.value);
+                        var totalWords = data [(data.length-1)]["ORIGINAL_SCRIPT_WORD_INDEX"];
+                        var searchEnd;
+                        var matches = []; //to account for multiple words highlighted in one section
+
+                        if (((scriptSection + 1)*100)>totalWords) {
+                          searchEnd = totalWords;
+                        }
+                        else {
+                          searchEnd = (scriptSection + 1)*100;
+                        }
+                          for (var j = (scriptSection*100); j < searchEnd; j++) {
+                            if (data [j] ["LOWERCASE"] == textBox.value) {
+                              var wordIndex = data [j] ["ORIGINAL_SCRIPT_WORD_INDEX"];
+                              matches.push(wordIndex);
+                              console.log(wordIndex);
+                            }
+                        }
+
+                        console.log(matches);
+
+                        for (var k = 0; k< matches.length; k++) {
+                          var currentWordSpan = document.getElementById('word-' + matches[k]);
+                          currentWordSpan.setAttribute('class','words highlight');
+                        }
+                        matches = [];
+
+                     })
                      })
                  });
+
+                 //problems: doesn't get rid of all old highlights, can only search one word at
+                 //a time, case-sensitive
 
             //crossfilter slices row-based data
             var cfTable = crossfilter(rawTable);
@@ -286,13 +384,25 @@ BB-8
 
             var textBox = document.createElement("input");
             document.getElementById("text-search").appendChild(textBox);
-            textBox.addEventListener("change", function() {
-                dependentAxis(
-                    indepDim,
-                    chart,
-                    sel.options[sel.selectedIndex].value,
-                    this.value
-                );
+            textBox.addEventListener("keypress", function(e) {
+              if (e.keyCode == 13) {
+                  if (this.value == "") {
+                    dependentAxis(
+                        indepDim,
+                        chart,
+                        sel.options[sel.selectedIndex].value, //value in dropdown
+                        this.value //value in textbox
+                    );
+                  }
+                  else {
+                    dependentAxis(
+                        indepDim,
+                        chart,
+                        "ORIGINAL_SCRIPT_WORD", //value in dropdown
+                        this.value //value in textbox
+                    );
+                  }
+              }
             });
 
             dependentAxis(indepDim, chart, keys[1]);
@@ -304,12 +414,14 @@ BB-8
                 var sectionedScript = document.getElementById('script');
 
                 //for script formatting
-                var punctuation  = [',', '.', '!', '?', '\''];
-                var endpunctuation =  ['.', '!', '?'];
+                var punctuation  = [',', '.', '!', '?', '\'', '"'];
+                var endpunctuation =  ['.', '!', '?', '."'];
                 var contractions = ['\'ve', '\'m', '\'ll', '\'re', '\'s', '\'t', 'n\'t'];
                 var capitals = ['i'];
                 var namesString = document.getElementById('characters').innerText;
                 var namesList = namesString.split(/(\s+)/);
+
+
 
                 for (var i = 0; i < sectionCount + 1; i++) {
                     var sectionSpan = document.createElement('span');
@@ -320,6 +432,11 @@ BB-8
 
                 for (var j = 0; j < wordCount; j++) {
                     var selectedWord = data [j]["ORIGINAL_SCRIPT_WORD"];
+
+                    var wordSpan = document.createElement('span');
+                    wordSpan.setAttribute('class', 'words');
+                    wordSpan.setAttribute('id', 'word-' + j);
+
                     //test for empty words
                     if (selectedWord == '') {
                         selectedWord = data [j]["LOWERCASE"];
@@ -332,22 +449,23 @@ BB-8
 
                     //speaker tags
                     if (j != 0 && (data [j]["CHARACTER"] != data [j-1]["CHARACTER"])) {
-                        selectedSpan.append(document.createElement('br')); //add newline
-                        selectedSpan.append(document.createTextNode(' ' + data [j]["CHARACTER"] + ': '));
+                        wordSpan.append(document.createElement('br')); //add newline
+                        wordSpan.append(document.createTextNode(' ' + data [j]["CHARACTER"] + ': '));
                     }
 
                     //formatting
                     if (punctuation.includes(selectedWord) || contractions.includes(selectedWord)) {  //no space before punctuation
-                        selectedSpan.append(document.createTextNode(selectedWord));
+                        wordSpan.append(document.createTextNode(selectedWord));
                     } else if (j != 0 && endpunctuation.includes(data [j-1]["ORIGINAL_SCRIPT_WORD"])) { //capitalize first word of sentence
-                        selectedSpan.append(document.createTextNode(' ' + selectedWord[0].toUpperCase() + selectedWord.slice(1)));
+                        wordSpan.append(document.createTextNode(' ' + selectedWord[0].toUpperCase() + selectedWord.slice(1)));
                     } else if (capitals.includes(selectedWord) || j == 0) { //format things like 'i'
-                        selectedSpan.append(document.createTextNode(' ' + selectedWord.toUpperCase()));
+                        wordSpan.append(document.createTextNode(' ' + selectedWord.toUpperCase()));
                     } else if (namesList.includes(selectedWord[0].toUpperCase() + selectedWord.slice(1))) { //format names
-                        selectedSpan.append(document.createTextNode(' ' + selectedWord[0].toUpperCase() + selectedWord.slice(1)));
+                        wordSpan.append(document.createTextNode(' ' + selectedWord[0].toUpperCase() + selectedWord.slice(1)));
                     } else {
-                        selectedSpan.append(document.createTextNode(' ' + selectedWord)); //all other words
+                        wordSpan.append(document.createTextNode(' ' + selectedWord)); //all other words
                     }
+                    selectedSpan.append(wordSpan);
                 }
             });
         });
