@@ -257,10 +257,12 @@ Snoke
                         p.count += 1;
                         p.sum += v[key].indexOf(sub) == -1 ? 0 : 1;
                         return p;
+                        console.log(v[key].indexOf(sub));
                     }, function(p, v) {
                         p.count -= 1;
                         p.sum -= v[key].indexOf(sub) == -1 ? 0 : 1;
                         return p;
+                        console.log(p);
                     }, function() {
                         var p = {}; p.count = 0; p.sum = 0; return p;
                     }
@@ -314,6 +316,11 @@ Snoke
                  .gap(0)
                  .on("renderlet.chart", function(chart) {
                      chart.selectAll('rect').on('click', function(d) {
+                     var wordHs = document.getElementsByClassName('words highlight');
+                     console.log(wordHs);
+                     for (var a = 0; a < wordHs.length; a++) {
+                       wordHs[a].parentNode.removeChild(wordHs[a]);
+                     }
                      console.log(d.data.value);
                      console.log("key: " + d.data.key);
                      var highlights = document.getElementsByClassName('highlight');
@@ -342,12 +349,12 @@ Snoke
                         else {
                           searchEnd = (scriptSection + 1)*100;
                         }
-                          for (var j = (scriptSection*100); j < searchEnd; j++) {
-                            if (data [j] ["LOWERCASE"] == textBox.value) {
-                              var wordIndex = data [j] ["ORIGINAL_SCRIPT_WORD_INDEX"];
-                              matches.push(wordIndex);
-                              console.log(wordIndex);
-                            }
+                        for (var j = (scriptSection*100); j < searchEnd; j++) {
+                          if (data [j] ["LOWERCASE"] == textBox.value) {
+                            var wordIndex = data [j] ["ORIGINAL_SCRIPT_WORD_INDEX"];
+                            matches.push(wordIndex);
+                            console.log(wordIndex);
+                          }
                         }
 
                         console.log(matches);
@@ -355,11 +362,10 @@ Snoke
                         for (var k = 0; k< matches.length; k++) {
                           var currentWordSpan = document.getElementById('word-' + matches[k]);
                           currentWordSpan.setAttribute('class','words highlight');
+                          matches.pop(k);
                         }
-                        matches = [];
-
-                     })
-                     })
+                      });
+                    });
                  });
 
                  //problems: doesn't get rid of all old highlights, can only search one word at
@@ -398,7 +404,7 @@ Snoke
                     dependentAxis(
                         indepDim,
                         chart,
-                        "ORIGINAL_SCRIPT_WORD", //value in dropdown
+                        "LOWERCASE", //value in dropdown
                         this.value //value in textbox
                     );
                   }
