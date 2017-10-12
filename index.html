@@ -27,19 +27,32 @@
             width: 50%;
             height: 45%;
         }
+
         #filter {
-            float: right;
-            width: 50%;
+            float: left;
+            width: 45%;
             height: 15%;
             background-color: rgba(0,0,0,0.05);
-            padding-left: 5px;
+            padding: 1em;
+            margin: 1em;
         }
+
+        #filter div {
+            padding-bottom: 10px;
+        }
+
         #fanwork {
             float: right;
             width: 50%;
             height: 40%;
             overflow-y: scroll;
         }
+
+        .grey {
+            color: graytext;
+            font-style: italic;
+        }
+
         .highlight {
             background-color: rgba(16, 96, 255, .5);
             font-weight: bold;
@@ -74,8 +87,27 @@
         .switch {
           position: relative;
           display: inline-block;
-          width: 40px;
-          height: 24px;
+          width: 32px;
+          height: 20px;
+        }
+
+        #chart-switch {
+            margin-left: 8px;
+            vertical-align: top;
+        }
+
+        #dependent-selector-2,
+        #dependent-selector-2 select {
+            vertical-align: top;
+        }
+
+        #input {
+            margin-left: 5px;
+        }
+
+        #slider {
+            display: flex;
+            align-items: center;
         }
 
         .switch input {display:none;}
@@ -96,8 +128,8 @@
         .slider:before {
           position: absolute;
           content: "";
-          height: 16px;
-          width: 16px;
+          height: 12px;
+          width: 12px;
           left: 4px;
           bottom: 4px;
           background-color: white;
@@ -112,9 +144,9 @@
           box-shadow: 0 0 1px #2196F3;
         }
         input:checked + .slider:before {
-          -webkit-transform: translateX(16px);
-          -ms-transform: translateX(16px);
-          transform: translateX(16px);
+          -webkit-transform: translateX(12px);
+          -ms-transform: translateX(12px);
+          transform: translateX(12px);
         }
 
     </style>
@@ -145,9 +177,11 @@ Jedi
     <div id="main-chart"></div>
     <div id="chart2"></div>
     <div id="filter">
-        <div id="chart-switch">Toggle second dependent variable:   </div>
-        <div id="dependent-selector">Dependent Variable:   </div>
-        <div id="dependent-selector-2">Dependent Variable 2:   </div>
+        <div id="dependent-selector">Dependent Variable 1:   </div>
+        <div id="toggle">
+            <span id="dependent-selector-2">Dependent Variable 2:   </span>
+            <span id="chart-switch"></span>
+        </div>
         <div id="text-search">Filter results by single value:   </div>
         <div id="slider">
             <span id="output"></span>
@@ -181,16 +215,20 @@ Jedi
         toggleLabel.appendChild(toggleSpan);
         chartSwitch.appendChild(toggleLabel);
 
-        //event listen for switch to show/hide single/double bar graph
+        //event listener for switch to show/hide single/double bar graph
         document.getElementById("chart-switch").addEventListener('change',function () {
-            var main = document.getElementById("main-chart");
-            var alt = document.getElementById("chart2");
-            if (main.className.includes('hide')) {
+            var main = document.getElementById('main-chart');
+            var alt = document.getElementById('chart2');
+            if (main.className.includes('hide')) { //from 2nd to main
                 alt.classList.add('hide');
                 main.classList.remove('hide');
-            } else {
+                document.getElementById('select2').setAttribute('disabled','disabled');
+                document.getElementById('dependent-selector-2').classList.add('grey');
+            } else {                               //from main to 2nd
                 main.classList.add('hide');
                 alt.classList.remove('hide');
+                document.getElementById('select2').removeAttribute('disabled');
+                document.getElementById('dependent-selector-2').classList.remove('grey');
             }
         });
 
@@ -252,10 +290,12 @@ Jedi
             });
         }
 
-    //--------------
+    // MAKE CHARTS
 
         //normal bar graph is the default view
         var chart = dc.barChart("#main-chart");
+        var chart2 = dc.barChart("#chart2");
+
         d3.csv("data.csv", function(error, rawTable) {
             //d is the key
             var meanAccessor = function(d) { return d.value.sum / d.value.count; };
@@ -266,8 +306,8 @@ Jedi
             var likelyNumeric = function(table, key) {
                 //map function takes array and produces another array containing callback results
                 var samples = table.map(function(d) { return +d[key]; });
-                // console.log(samples[0]); //output: 58
-                // console.log(table[0]); //output: {SCRIPT_SECTION: "58", DISTANCE_TIER: "3", CHARACTER: "FINN", MATCH_COUNT: "4914"}
+                //console.log(samples[0]); //output: 58
+                //console.log(table[0]); //output: {SCRIPT_SECTION: "58", DISTANCE_TIER: "3", CHARACTER: "FINN", MATCH_COUNT: "4914"}
                 //d = key, i = value (both from data)
                 for (var i = 0; i < samples.length; i++) {
                     if (isNaN(samples[i])) {
@@ -345,7 +385,6 @@ Jedi
                 chart.yAxisLabel(key).group(group);
                 chart.render();
             }
-//************
 
             chart.margins({top: 50, right: 50, bottom: 50, left: 50})
                  .brushOn(false)
@@ -353,12 +392,10 @@ Jedi
                  .gap(0)
                  .on("renderlet.chart", function(chart) {
                      chart.selectAll('rect').on('click', function(d) {
-                     //console.log(d.data.key);
                      var highlights = document.getElementsByClassName('highlight');
                      for (var c = 0; c < highlights.length; c++) {
                          highlights[c].setAttribute('class','script-section');
                      }
-                     console.log(d.data.key);
                      var currentSpan = document.getElementById('script-section-' + d.data.key);
                      currentSpan.scrollIntoView();
                      currentSpan.setAttribute('class','script-sections highlight');
@@ -393,124 +430,7 @@ Jedi
                 );
             });
 
-            slideWidget.oninput = function () {
-                //remove script section highlighting from previous bin size
-                var highlights = document.getElementsByClassName('highlight');
-                for (var c = 0; c < highlights.length; c++) {
-                    highlights[c].setAttribute('class','script-section');
-                }
-
-                //print current slider value
-                var out = document.getElementById('output');
-                out.innerHTML = 'Words per script section: ' + this.value;
-
-                //remake plot with new bin size
-                indepDim = independentAxis(cfTable, chart, "ORIGINAL_SCRIPT_WORD_INDEX", slideWidget.value);
-                dependentAxis(indepDim, chart, sel.options[sel.selectedIndex].value);
-                indepDim.dispose(); //get rid of the dimension b/c of 32 dim max
-
-                var selection = this.value;
-                var callback = function (val) {
-                    if (val == document.getElementById('sliderWidget').value) {
-                        document.getElementById('script').innerHTML = ''; //remove previous version of scriont
-                        renderScript(); //rewrite script with new bin size/script section sizes
-                    }
-                }
-                setTimeout(callback, 1000, selection);
-                //document.getElementById('script').innerHTML = ''; //remove previous version of scriont
-                //renderScript(); //rewrite script with new bin size/script section sizes
-            }
-
-            //default chart rendered onload; 1 is positive match as y-axis
-            dependentAxis(indepDim, chart, keys[1]);
-            renderScript();
-
-        }); // end main chart
-
-        var chart2 = dc.barChart("#chart2");
-        d3.csv("data.csv", function(error, rawTable) {
-            var meanAccessor = function(d) { return d.value.sum / d.value.count; };
-            var countAccessor = function(d) { return d.value.count; };
-            var sumAccessor = function(d) { return d.value.sum; };
-
-            var likelyNumeric = function(table, key) {
-                var samples = table.map(function(d) { return +d[key]; });
-                for (var i = 0; i < samples.length; i++) {
-                    if (isNaN(samples[i])) {
-                        return false;
-                    }
-                }
-                return true;
-            }
-
-            //reduce function sums up certain values of keys
-            var reduceOnKey = function(dim, key) {
-                return dim.group().reduce(
-                    function(p, v) {
-                        p.count += 1; p.sum += +v[key]; return p; },
-                    function(p, v) {
-                        p.count -= 1; p.sum -= +v[key]; return p; },
-                    function() {
-                        var p = {}; p.count = 0; p.sum = 0; return p; });
-            };
-
-            var reduceOnKeySubstring = function(dim, key, sub) {
-                return dim.group().reduce(
-                    function(p, v) {
-                        p.count += 1;
-                        p.sum += v[key].indexOf(sub) == -1 ? 0 : 1;
-                        return p;
-                    }, function(p, v) {
-                        p.count -= 1;
-                        p.sum -= v[key].indexOf(sub) == -1 ? 0 : 1;
-                        return p;
-                    }, function() {
-                        var p = {}; p.count = 0; p.sum = 0; return p;
-                    }
-                );
-            };
-
-            //dimension defines a dimension
-            //builds x axis based on what "key" is
-            var independentAxis = function(table, chart, key, bin) {
-                bin = bin || 100;
-
-                var modifyAxis = function(d) {
-                    return Math.floor(+d[key]/bin);
-                }
-
-                var dim = table.dimension(modifyAxis);
-                //var hi = +dim.top(1)[0][key] + 1;
-                //var lo = +dim.bottom(1)[0][key];
-                var hi = modifyAxis(dim.top(1)[0])+1;
-                var lo = modifyAxis(dim.bottom(1)[0]);
-                chart.x(d3.scale.linear().domain([lo, hi]));
-                chart.xAxisLabel(key);
-                chart.xAxis().tickFormat(d3.format("d"));
-                chart.dimension(dim);
-                return dim;
-            }
-
-            var dependentAxis = function(dim, chart, key, sub) {
-                sub = sub || "";
-
-                var group;
-                if (likelyNumeric(rawTable, key)) {
-                    group = reduceOnKey(dim, key);
-                } else {
-                    group = reduceOnKeySubstring(dim, key, sub);
-                }
-
-                //reduce function sums up all matches (values) of keys at certain
-                //script section
-                var all = group.all().map(sumAccessor);
-                // console.log(all);
-                chart.y(d3.scale.linear().domain([0, d3.max(all)]));
-                // console.log(d3.max(all));
-                chart.yAxisLabel(key).group(group);
-                chart.render();
-            }
-
+            // CHART 2
             chart2.margins({top: 50, right: 50, bottom: 50, left: 50})
                  .brushOn(false)
                  .valueAccessor(sumAccessor)
@@ -529,11 +449,10 @@ Jedi
                      })
                  });
 
-            //crossfilter slices row-based data
-            var cfTable = crossfilter(rawTable);
-            var indepDim = independentAxis(cfTable, chart2, "ORIGINAL_SCRIPT_WORD_INDEX");
-            var keys = Object.keys(rawTable[0]);
+            var indepDim2 = independentAxis(cfTable, chart2, "ORIGINAL_SCRIPT_WORD_INDEX");
+
             var sel2 = document.createElement("select");
+            sel2.id = 'select2';
             document.getElementById("dependent-selector-2").appendChild(sel2);
             for (var k = 0; k < keys.length; k++) {
                 var key = keys[k];
@@ -541,7 +460,7 @@ Jedi
             }
             sel2.options[1].selected = true;
             sel2.addEventListener("change", function() {
-                dependentAxis(indepDim, chart2, this.value);
+                dependentAxis(indepDim2, chart2, this.value);
             });
 
             slideWidget.oninput = function () {
@@ -555,10 +474,14 @@ Jedi
                 var out = document.getElementById('output');
                 out.innerHTML = 'Words per script section: ' + this.value;
 
-                //remake plot with new bin size
+                //remake plots with new bin size
                 indepDim = independentAxis(cfTable, chart, "ORIGINAL_SCRIPT_WORD_INDEX", slideWidget.value);
-                dependentAxis(indepDim, chart, sel2.options[sel2.selectedIndex].value);
+                dependentAxis(indepDim, chart, sel.options[sel.selectedIndex].value);
                 indepDim.dispose(); //get rid of the dimension b/c of 32 dim max
+
+                indepDim2 = independentAxis(cfTable, chart2, "ORIGINAL_SCRIPT_WORD_INDEX", slideWidget.value);
+                dependentAxis(indepDim2, chart2, sel2.options[sel2.selectedIndex].value);
+                indepDim2.dispose();
 
                 var selection = this.value;
                 var callback = function (val) {
@@ -568,15 +491,20 @@ Jedi
                     }
                 }
                 setTimeout(callback, 1000, selection);
-                //document.getElementById('script').innerHTML = ''; //remove previous version of scriont
-                //renderScript(); //rewrite script with new bin size/script section sizes
             }
 
-            //default chart rendered onload; 1 is positive match as y-axis
-            dependentAxis(indepDim, chart2, keys[1]);
+            //render charts; 1 is positive match as y-axis
+            dependentAxis(indepDim, chart, keys[1]);
+            dependentAxis(indepDim2, chart2, keys[1]);
+
             renderScript();
+
             document.getElementById("chart2").classList.add('hide'); //default hide double bar graph
+            document.getElementById('select2').setAttribute('disabled','disabled');
+            document.getElementById('dependent-selector-2').classList.add('grey');
         }); // end second chart
+
+
 
         </script>
     </div> <!-- end content div -->
