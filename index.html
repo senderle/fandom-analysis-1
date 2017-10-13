@@ -18,18 +18,28 @@
             overflow-y: scroll;
         }
         #main-chart {
-            float: right;
+            position: absolute;
+            top: 0;
+            right: 0;
+            /*float: right;*/
             width: 50%;
             height: 45%;
         }
         #chart2 {
-            float: right;
+            position: absolute;
+            top: 0;
+            right: 0;
+            /*float: right;*/
             width: 50%;
             height: 45%;
         }
 
         #filter {
-            float: left;
+            /*float: left;*/
+            position: absolute;
+            left: 49%;
+            top: 45%;
+
             width: 45%;
             height: 15%;
             background-color: rgba(0,0,0,0.05);
@@ -42,7 +52,10 @@
         }
 
         #fanwork {
-            float: right;
+            position: absolute;
+            right: 0;
+            margin-top: 60%;
+            /*float: right;*/
             width: 50%;
             height: 40%;
             overflow-y: scroll;
@@ -80,7 +93,8 @@
             /* color: rgba(0, 0, 0, 1.0); */
         }
         .hide {
-            display: none;
+            /*display: none;*/
+            visibility: hidden;
         }
 
         /* The switch - the box around the slider */
