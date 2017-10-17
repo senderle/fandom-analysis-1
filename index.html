@@ -66,14 +66,12 @@
         }
     </style>
     <script>
-
     </script>
 </head>
 
 <body>
     <div id="content">
     <script>
-
     </script>
     <div id="script"></div>
     <div id="characters" style="display: none">
@@ -196,13 +194,11 @@ Snoke
         <div id="text-search"></div>
     </div>
     <script>
-
         var chart = dc.barChart("#main-chart");
         d3.csv("data.csv", function(error, rawTable) {
             var meanAccessor = function(d) { return d.value.sum / d.value.count; };
             var countAccessor = function(d) { return d.value.count; };
             var sumAccessor = function(d) { return d.value.sum; };
-
             // var topKeywords = function(table, key) {
             //     var col = table.map(function(d) { return d[key]; });
             //     // col = _.flatMap(col, function(d) { return d.split(" "); });
@@ -218,9 +214,7 @@ Snoke
             //         function(d) { return -words[d]; }
             //     );
             // }
-
             //d = key, i = value (both from data)
-
             //check if values are numbers
             //map function takes array and produces another array containing results
             //of executed callback function
@@ -235,47 +229,38 @@ Snoke
                 }
                 return true;
             };
-
             //use filter function?
-
             //reduce function sums up certain values of keys
             var reduceOnKey = function(dim, key) {
                 return dim.group().reduce(
                     function(p, v) {
-                        p.count += 1; p.sum += +v[key]; return p; console.log(v[key]);},
-
+                        p.count += 1; p.sum += +v[key]; return p; },
                     function(p, v) {
-                        p.count -= 1; p.sum -= +v[key]; return p; console.log(v[key]);},
-
+                        p.count -= 1; p.sum -= +v[key]; return p; },
                     function() {
                         var p = {}; p.count = 0; p.sum = 0; return p; });
             };
-
             var reduceOnKeySubstring = function(dim, key, sub) {
                 return dim.group().reduce(
                     function(p, v) {
                         p.count += 1;
-                        p.sum += v[key].indexOf(sub) == -1 ? 0 : 1;
+                        p.sum += v[key].indexOf(sub) != -1 ? 0 : 1;
                         return p;
-                        console.log(v[key].indexOf(sub));
                     }, function(p, v) {
                         p.count -= 1;
-                        p.sum -= v[key].indexOf(sub) == -1 ? 0 : 1;
+                        p.sum -= v[key].indexOf(sub) != -1 ? 0 : 1;
                         return p;
-                        console.log(p);
                     }, function() {
                         var p = {}; p.count = 0; p.sum = 0; return p;
                     }
                 );
             };
-
             //dimension defines a dimension
             //builds x axis based on what "key" is
             var independentAxis = function(table, chart, key) {
                 var modifyAxis = function(d) {
                     return Math.floor(+d[key]/100);
                 }
-
                 var dim = table.dimension(modifyAxis);
                 //var hi = +dim.top(1)[0][key] + 1;
                 //var lo = +dim.bottom(1)[0][key];
@@ -287,11 +272,15 @@ Snoke
                 chart.dimension(dim);
                 return dim;
             }
-
+            var filterAxis = function(table, key, sub) {
+                var match = function (d) {
+                  return d[key];
+                }
+                var dim = table.dimension(match);
+                dim.filterFunction(function(d) { return d == sub });
+            }
             var dependentAxis = function(dim, chart, key, sub) {
                 sub = sub || "";
-                console.log(sub);
-
                 var group;
                 if (likelyNumeric (rawTable, key)) {
                     group = reduceOnKey(dim, key);
@@ -300,7 +289,6 @@ Snoke
                     // var hints = topKeywords(rawTable, key).slice(0, 10);
                     // console.log(hints);
                 }
-
                 //reduce function sums up all matches (values) of keys at certain
                 //script section
                 var all = group.all().map(sumAccessor);
@@ -309,7 +297,6 @@ Snoke
                 chart.yAxisLabel(key).group(group);
                 chart.render();
             }
-
             chart.margins({top: 50, right: 50, bottom: 50, left: 50})
                  .brushOn(false)
                  .valueAccessor(sumAccessor)
@@ -319,7 +306,7 @@ Snoke
                      var wordHs = document.getElementsByClassName('words highlight');
                      console.log(wordHs);
                      for (var a = 0; a < wordHs.length; a++) {
-                       wordHs[a].parentNode.removeChild(wordHs[a]);
+                       wordHs[a].removeAttribute('class', 'words higlight');
                      }
                      console.log(d.data.value);
                      console.log("key: " + d.data.key);
@@ -330,19 +317,16 @@ Snoke
                      var currentSpan = document.getElementById('script-section-' + d.data.key);
                      currentSpan.scrollIntoView();
                      currentSpan.setAttribute('class','script-sections highlight');
-
                      var wordHighlights = document.getElementsByClassName('word-highlight');
                      for (var a = 0; a < wordHighlights.length; a++) {
                          wordHighlights[a].setAttribute('class','words');
                      }
-
                      d3.csv('data.csv', function(data) {
                         var scriptSection = d.data.key;
                         console.log(textBox.value);
                         var totalWords = data [(data.length-1)]["ORIGINAL_SCRIPT_WORD_INDEX"];
                         var searchEnd;
                         var matches = []; //to account for multiple words highlighted in one section
-
                         if (((scriptSection + 1)*100)>totalWords) {
                           searchEnd = totalWords;
                         }
@@ -356,25 +340,19 @@ Snoke
                             console.log(wordIndex);
                           }
                         }
-
                         console.log(matches);
-
                         for (var k = 0; k< matches.length; k++) {
                           var currentWordSpan = document.getElementById('word-' + matches[k]);
                           currentWordSpan.setAttribute('class','words highlight');
-                          matches.pop(k);
                         }
                       });
                     });
                  });
-
                  //problems: doesn't get rid of all old highlights, can only search one word at
                  //a time, case-sensitive
-
             //crossfilter slices row-based data
             var cfTable = crossfilter(rawTable);
             var indepDim = independentAxis(cfTable, chart, "ORIGINAL_SCRIPT_WORD_INDEX");
-
             var keys = Object.keys(rawTable[0]);
             var sel = document.createElement("select");
             document.getElementById("dependent-selector").appendChild(sel);
@@ -383,11 +361,9 @@ Snoke
                 sel.options[sel.options.length] = new Option(key, key);
             }
             sel.options[1].selected = true;
-
             sel.addEventListener("change", function() {
                 dependentAxis(indepDim, chart, this.value);
             });
-
             var textBox = document.createElement("input");
             document.getElementById("text-search").appendChild(textBox);
             textBox.addEventListener("keypress", function(e) {
@@ -401,24 +377,25 @@ Snoke
                     );
                   }
                   else {
+                    var searchTerms = this.value.toLowerCase();
+                    searchTerms = searchTerms.replace(/^[ \t]+|[ \t]+$/, '');
+                    filterAxis(cfTable, "LOWERCASE", searchTerms);
                     dependentAxis(
                         indepDim,
                         chart,
-                        "LOWERCASE", //value in dropdown
-                        this.value //value in textbox
+                        sel.options[sel.selectedIndex].value, //value in dropdown
+                        searchTerms //value in textbox
                     );
                   }
               }
             });
-
+            // filterAxis(cfTable, "LOWERCASE", "force");
             dependentAxis(indepDim, chart, keys[1]);
-
             d3.csv('data.csv', function(data) {
                 var wordCount =  data [(data.length-1)]["ORIGINAL_SCRIPT_WORD_INDEX"];
                 //var sectionCount = data [(data.length-1)]["SCRIPT_SECTION"];
                 var sectionCount = Math.floor(wordCount/100) + 1;
                 var sectionedScript = document.getElementById('script');
-
                 //for script formatting
                 var punctuation  = [',', '.', '!', '?', '\'', '"'];
                 var endpunctuation =  ['.', '!', '?', '."'];
@@ -426,39 +403,30 @@ Snoke
                 var capitals = ['i'];
                 var namesString = document.getElementById('characters').innerText;
                 var namesList = namesString.split(/(\s+)/);
-
-
-
                 for (var i = 0; i < sectionCount + 1; i++) {
                     var sectionSpan = document.createElement('span');
                     sectionSpan.setAttribute('class', 'script-sections');
                     sectionSpan.setAttribute('id', 'script-section-' + i);
                     sectionedScript.append(sectionSpan);
                 }
-
                 for (var j = 0; j < wordCount; j++) {
                     var selectedWord = data [j]["ORIGINAL_SCRIPT_WORD"];
-
                     var wordSpan = document.createElement('span');
                     wordSpan.setAttribute('class', 'words');
                     wordSpan.setAttribute('id', 'word-' + j);
-
                     //test for empty words
                     if (selectedWord == '') {
                         selectedWord = data [j]["LOWERCASE"];
                     }
-
                     var wordIndex = data [j]["ORIGINAL_SCRIPT_WORD_INDEX"];
                     var section = Math.floor(wordIndex / 100);
                     //var section = data [j]["SCRIPT_SECTION"];
                     var selectedSpan = document.getElementById('script-section-' + section);
-
                     //speaker tags
                     if (j != 0 && (data [j]["CHARACTER"] != data [j-1]["CHARACTER"])) {
                         wordSpan.append(document.createElement('br')); //add newline
                         wordSpan.append(document.createTextNode(' ' + data [j]["CHARACTER"] + ': '));
                     }
-
                     //formatting
                     if (punctuation.includes(selectedWord) || contractions.includes(selectedWord)) {  //no space before punctuation
                         wordSpan.append(document.createTextNode(selectedWord));
