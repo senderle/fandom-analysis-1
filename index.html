@@ -255,7 +255,7 @@ Snoke
                     }
                 );
             };
-            //dimension defines a dimension
+            //dimension defines a column in csv
             //builds x axis based on what "key" is
             var independentAxis = function(table, chart, key) {
                 var modifyAxis = function(d) {
@@ -277,7 +277,14 @@ Snoke
                   return d[key];
                 }
                 var dim = table.dimension(match);
-                dim.filterFunction(function(d) { return d == sub });
+                dim.remove();
+                dim.filter(null);
+                if (sub == "") {
+                  dim.filter(function(d) { return d; });
+                }
+                else {
+                  dim.filter(function(d) { return d === sub; });
+                }
             }
             var dependentAxis = function(dim, chart, key, sub) {
                 sub = sub || "";
@@ -286,8 +293,6 @@ Snoke
                     group = reduceOnKey(dim, key);
                 } else {
                     group = reduceOnKeySubstring(dim, key, sub);
-                    // var hints = topKeywords(rawTable, key).slice(0, 10);
-                    // console.log(hints);
                 }
                 //reduce function sums up all matches (values) of keys at certain
                 //script section
@@ -348,9 +353,7 @@ Snoke
                       });
                     });
                  });
-                 //problems: doesn't get rid of all old highlights, can only search one word at
-                 //a time, case-sensitive
-            //crossfilter slices row-based data
+
             var cfTable = crossfilter(rawTable);
             var indepDim = independentAxis(cfTable, chart, "ORIGINAL_SCRIPT_WORD_INDEX");
             var keys = Object.keys(rawTable[0]);
@@ -369,16 +372,8 @@ Snoke
             textBox.addEventListener("keypress", function(e) {
               if (e.keyCode == 13) {
                   if (this.value == "") {
-                    dependentAxis(
-                        indepDim,
-                        chart,
-                        sel.options[sel.selectedIndex].value, //value in dropdown
-                        this.value //value in textbox
-                    );
-                  }
-                  else {
-                    var searchTerms = this.value.toLowerCase();
-                    searchTerms = searchTerms.replace(/^[ \t]+|[ \t]+$/, '');
+                    var searchTerms = this.value;
+                    console.log(searchTerms);
                     filterAxis(cfTable, "LOWERCASE", searchTerms);
                     dependentAxis(
                         indepDim,
@@ -386,6 +381,19 @@ Snoke
                         sel.options[sel.selectedIndex].value, //value in dropdown
                         searchTerms //value in textbox
                     );
+                  }
+                  else {
+                    var searchTerms = this.value.toLowerCase();
+                    searchTerms = searchTerms.replace(/^[ \t]+|[ \t]+$/, '');
+                    filterAxis(cfTable, "LOWERCASE", searchTerms);
+                    console.log(searchTerms);
+                    dependentAxis(
+                        indepDim,
+                        chart,
+                        sel.options[sel.selectedIndex].value, //value in dropdown
+                        searchTerms //value in textbox
+                    );
+
                   }
               }
             });
