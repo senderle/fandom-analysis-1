@@ -188,6 +188,7 @@ Snoke
         Rebel Tech. #4-->
     </div>
 
+
     <div id="main-chart"></div>
     <div id="filter">
         <div id="dependent-selector"></div>
@@ -199,29 +200,13 @@ Snoke
             var meanAccessor = function(d) { return d.value.sum / d.value.count; };
             var countAccessor = function(d) { return d.value.count; };
             var sumAccessor = function(d) { return d.value.sum; };
-            // var topKeywords = function(table, key) {
-            //     var col = table.map(function(d) { return d[key]; });
-            //     // col = _.flatMap(col, function(d) { return d.split(" "); });
-            //     // col = _.filter(col, function(d) { return !stopwordList.hasOwnProperty(d.toLowerCase()); } );
-            //     words = _.countBy(col, function(d) {
-            //         return d.toLowerCase()
-            //                 .replace('.', '')
-            //                 .replace(',', '')
-            //                 .replace('-', '');
-            //     });
-            //     return _.sortBy(
-            //         Object.keys(words),
-            //         function(d) { return -words[d]; }
-            //     );
-            // }
+
             //d = key, i = value (both from data)
             //check if values are numbers
             //map function takes array and produces another array containing results
             //of executed callback function
             var likelyNumeric = function(table, key) {
                 var samples = table.map(function(d) { return +d[key]; });
-                // console.log(samples[0]); //output: 58
-                // console.log(table[0]); //output: {SCRIPT_SECTION: "58", DISTANCE_TIER: "3", CHARACTER: "FINN", MATCH_COUNT: "4914"}
                 for (var i = 0; i < samples.length; i++) {
                     if (isNaN(samples[i])) {
                         return false;
@@ -229,7 +214,7 @@ Snoke
                 }
                 return true;
             };
-            //use filter function?
+
             //reduce function sums up certain values of keys
             var reduceOnKey = function(dim, key) {
                 return dim.group().reduce(
@@ -287,17 +272,16 @@ Snoke
                 }
             }
             var dependentAxis = function(dim, chart, key, sub) {
-                sub = sub || "";
+                // sub = sub || "";
                 var group;
-                if (likelyNumeric (rawTable, key)) {
+                // if (likelyNumeric (rawTable, key)) {
                     group = reduceOnKey(dim, key);
-                } else {
-                    group = reduceOnKeySubstring(dim, key, sub);
-                }
+                // } else {
+                //     group = reduceOnKeySubstring(dim, key, sub);
+                // }
                 //reduce function sums up all matches (values) of keys at certain
                 //script section
                 var all = group.all().map(sumAccessor);
-                console.log(all);
                 chart.y(d3.scale.linear().domain([0, d3.max(all)]));
                 chart.yAxisLabel(key).group(group);
                 chart.render();
@@ -309,7 +293,6 @@ Snoke
                  .on("renderlet.chart", function(chart) {
                      chart.selectAll('rect').on('click', function(d) {
                      var wordHs = document.getElementsByClassName('words highlight');
-                     console.log(wordHs);
                      for (var a = 0; a < wordHs.length; a++) {
                        wordHs[a].removeAttribute('class', 'words higlight');
                      }
@@ -328,7 +311,6 @@ Snoke
                      }
                      d3.csv('data.csv', function(data) {
                         var scriptSection = d.data.key;
-                        console.log(textBox.value);
                         var totalWords = data [(data.length-1)]["ORIGINAL_SCRIPT_WORD_INDEX"];
                         var searchEnd;
                         var matches = []; //to account for multiple words highlighted in one section
@@ -342,7 +324,6 @@ Snoke
                           if (data [j] ["LOWERCASE"] == textBox.value) {
                             var wordIndex = data [j] ["ORIGINAL_SCRIPT_WORD_INDEX"];
                             matches.push(wordIndex);
-                            console.log(wordIndex);
                           }
                         }
                         console.log(matches);
@@ -359,11 +340,14 @@ Snoke
             var keys = Object.keys(rawTable[0]);
             var sel = document.createElement("select");
             document.getElementById("dependent-selector").appendChild(sel);
+            var ignoreKeyList = ["ORIGINAL_SCRIPT_WORD", "SPACY_ORTH_ID", "ORIGINAL_SCRIPT_WORD_INDEX", "LOWERCASE"];
             for (var k = 0; k < keys.length; k++) {
                 var key = keys[k];
-                sel.options[sel.options.length] = new Option(key, key);
+                if (!(ignoreKeyList.includes(key))) {
+                  sel.options[sel.options.length] = new Option(key, key);
+                };
             }
-            sel.options[1].selected = true;
+            sel.options[0].selected = true;
             sel.addEventListener("change", function() {
                 dependentAxis(indepDim, chart, this.value);
             });
@@ -401,7 +385,6 @@ Snoke
             dependentAxis(indepDim, chart, keys[1]);
             d3.csv('data.csv', function(data) {
                 var wordCount =  data [(data.length-1)]["ORIGINAL_SCRIPT_WORD_INDEX"];
-                //var sectionCount = data [(data.length-1)]["SCRIPT_SECTION"];
                 var sectionCount = Math.floor(wordCount/100) + 1;
                 var sectionedScript = document.getElementById('script');
                 //for script formatting
@@ -428,7 +411,6 @@ Snoke
                     }
                     var wordIndex = data [j]["ORIGINAL_SCRIPT_WORD_INDEX"];
                     var section = Math.floor(wordIndex / 100);
-                    //var section = data [j]["SCRIPT_SECTION"];
                     var selectedSpan = document.getElementById('script-section-' + section);
                     //speaker tags
                     if (j != 0 && (data [j]["CHARACTER"] != data [j-1]["CHARACTER"])) {
