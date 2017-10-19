@@ -579,7 +579,7 @@ Jedi
                     dependentAxis(
                         indepDim2,
                         chart2,
-                        sel.options[sel.selectedIndex].value, //value in dropdown
+                        sel2.options[sel2.selectedIndex].value, //value in dropdown
                         searchTerms //value in textbox
                     );
                   }
@@ -591,7 +591,7 @@ Jedi
                     dependentAxis(
                         indepDim2,
                         chart2,
-                        sel.options[sel.selectedIndex].value, //value in dropdown
+                        sel2.options[sel2.selectedIndex].value, //value in dropdown
                         searchTerms //value in textbox
                     );
                   }
@@ -612,10 +612,22 @@ Jedi
                 //remake plots with new bin size
                 indepDim = independentAxis(cfTable, chart, "ORIGINAL_SCRIPT_WORD_INDEX", slideWidget.value);
                 dependentAxis(indepDim, chart, sel.options[sel.selectedIndex].value);
+                // textBox.addEventListener("keypress", function(e) {
+                //   if (e.keyCode == 13) {
+                //     filterAxis(cfTable, "LOWERCASE", this.value);
+                //     dependentAxis(indepDim, chart, sel.options[sel.selectedIndex].value, this.value);
+                //   }
+                // });
                 indepDim.dispose(); //get rid of the dimension b/c of 32 dim max
 
                 indepDim2 = independentAxis(cfTable, chart2, "ORIGINAL_SCRIPT_WORD_INDEX", slideWidget.value);
                 dependentAxis(indepDim2, chart2, sel2.options[sel2.selectedIndex].value);
+                // textBox.addEventListener("keypress", function(e) {
+                //   if (e.keyCode == 13) {
+                //     filterAxis(cfTable, "LOWERCASE", this.value);
+                //     dependentAxis(indepDim2, chart2, sel2.options[sel2.selectedIndex].value, this.value);
+                //   }
+                // });
                 indepDim2.dispose();
 
                 var selection = this.value;
