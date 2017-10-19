@@ -10,30 +10,63 @@
     <script src="https://cdn.jsdelivr.net/lodash/4.17.4/lodash.min.js"></script>
     <style>
         #content, html, body {
-            height: 98%;
+            height: 98vh;
         }
         #script {
             float: left;
-            width: 50%;
+            width: 49%;
             height: 100%;
-            overflow: scroll;
-        }
-        #visual {
-            float: left;
-            width: 50%;
-            height: 50%;
+            overflow-y: scroll;
         }
         #main-chart {
-            float: right;
+            position: absolute;
+            top: 0;
+            right: 0;
+            /*float: right;*/
             width: 50%;
-            height: 50%;
+            height: 45%;
         }
+
+        #chart2 {
+            position: absolute;
+            top: 0;
+            right: 0;
+            /*float: right;*/
+            width: 50%;
+            height: 45%;
+        }
+
+        #filter {
+            float: left;
+            position: absolute;
+            left: 49%;
+            top: 45%;
+            width: 45%;
+            height: 15%;
+            background-color: rgba(0,0,0,0.05);
+            padding: 1em;
+            margin: 1em;
+        }
+
+        #filter div {
+            padding-bottom: 10px;
+        }
+
         #fanwork {
-            float: right;
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            /*float: right;*/
             width: 50%;
-            height: 43%;
-            overflow: scroll;
+            height: 32%;
+            overflow-y: scroll;
         }
+
+        .grey {
+            color: graytext;
+            font-style: italic;
+        }
+
         .highlight {
             background-color: rgba(16, 96, 255, .5);
             font-weight: bold;
@@ -64,15 +97,82 @@
             background-color: rgba(224, 0, 0, 0.45);
             /* color: rgba(0, 0, 0, 1.0); */
         }
+        .hide {
+            /*display: none;*/
+            visibility: hidden;
+        }
+
+        /* The switch - the box around the slider */
+        .switch {
+          position: relative;
+          display: inline-block;
+          width: 32px;
+          height: 20px;
+        }
+
+        #chart-switch {
+            margin-left: 8px;
+            vertical-align: top;
+        }
+
+        #dependent-selector-2,
+        #dependent-selector-2 select {
+            vertical-align: top;
+        }
+
+        #input {
+            margin-left: 5px;
+        }
+
+        #slider {
+            display: flex;
+            align-items: center;
+        }
+
+        .switch input {display:none;}
+
+        /*slider styles*/
+        .slider {
+          position: absolute;
+          cursor: pointer;
+          top: 0px;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-color: rgba(0,0,0,0.2);
+          -webkit-transition: .4s;
+          transition: .4s;
+          /*border-radius: 22px;*/
+        }
+        .slider:before {
+          position: absolute;
+          content: "";
+          height: 12px;
+          width: 12px;
+          left: 4px;
+          bottom: 4px;
+          background-color: white;
+          -webkit-transition: .4s;
+          transition: .4s;
+          /*border-radius: 50%;*/
+        }
+        input:checked + .slider {
+          background-color: #2196F3;
+        }
+        input:focus + .slider {
+          box-shadow: 0 0 1px #2196F3;
+        }
+        input:checked + .slider:before {
+          -webkit-transform: translateX(12px);
+          -ms-transform: translateX(12px);
+          transform: translateX(12px);
+        }
+
     </style>
-    <script>
-    </script>
 </head>
 
 <body>
     <div id="content">
-    <script>
-    </script>
     <div id="script"></div>
     <div id="characters" style="display: none">
 Han Solo
@@ -123,89 +223,140 @@ Phasma
 Plutt
 Goazon
 Snoke
+Jedi
     </div>
-    <div id="characters-minor" style="display: none">
-        <!--Wounded Stormtrooper (Village)
-        The Vicar
-        Junk Dealer
-        Junk Minion 1
-        Snowtrooper #12 (Falcon)
-        Salvage Station Bully (Desert Set)
-        Scared Villager
-        Captain Phasma
-        Star Destroyer Colonel
-        Rose’s Pub Barman (C049)
-        Evil Castle Teach #1
-        Brance (Rebel)
-        Rebel 1 Major Ematt
-        Rebel 2 Captain Trilla
-        Rebel Admiral
-        Evil Castle Officer #1
-        Evil Castle Officer #2
-        Gorwyn (Rebel Pilot)
-        Rebel Pilot #1 (Duncan)
-        Evil Castle Tech (Weapons)
-        Stormtrooper #1 (Village)
-        Star Destroyer Bridge Teach #2
-        Stormtrooper 2 (Village)
-        Gang member Mod #1
-        Gang member Rocker #1
-        “Bus Stop” Mother
-        “Bus Stop” Son
-        Lieutenant Mitaka
-        Ruddo
-        Emissary
-        Naka (Flashback)
-        Local Trader (Flashback)
-        Young Luke Skywalker (Flashback)
-        Stormtrooper #10
-        Rebel Pilot
-        Rebel Pilot N.N.
-        Rebel Pilot #3
-        Statura
-        Rebel Tech #1
-        Rebel Tech #2
-        Captain Trilla
-        Stormtrooper #11
-        Stormtrooper #3 (Kylo Ren’s Request)
-        Stormtrooper #5 (Woods)
-        Snowtrooper #7 (Snow Steal)
-        Stormtrooper #8 (Door to Ramparts)
-        Evil Castle Tech (Scared)
-        Star Destroyer Bridge Tech #1
-        Star Destroyer Technician
-        Evil Castle Tech #4
-        Evil Castle Tech #5
-        Salvage Station Bully 2
-        Gang Member Rocker #2
-        Rose’s Pub Patron #1
-        Rose’s Pub Patron #2
-        Rose’s Pub Patron #3
-        Fat Cat (Flashback)
-        Gangsters Mill
-        Rebel Tech #3
-        Dr. Kalonia
-        Rebel Tech. #4-->
-    </div>
-
 
     <div id="main-chart"></div>
+    <div id="chart2"></div>
     <div id="filter">
-        <div id="dependent-selector"></div>
-        <div id="text-search"></div>
+        <div id="dependent-selector">Dependent Variable 1:   </div>
+        <div id="toggle">
+            <span id="dependent-selector-2">Dependent Variable 2:   </span>
+            <span id="chart-switch"></span>
+        </div>
+        <div id="text-search">Filter results by single value:   </div>
+        <div id="slider">
+            <span id="output"></span>
+            <span id="input"></span>
+        </div>
     </div>
+    <div id="fanwork"></div>
     <script>
+
+        //make slider widget for binsize - default 100 word script secitons
+        var slideWidget = document.createElement('input');
+        slideWidget.id = 'sliderWidget';
+        slideWidget.setAttribute('type','range');
+        slideWidget.setAttribute('min','5');
+        slideWidget.setAttribute('max','1000');
+        slideWidget.setAttribute('step','5');
+        slideWidget.setAttribute('value','100');
+        var slider = document.getElementById('input');
+        slider.appendChild(slideWidget);
+        document.getElementById('output').innerHTML = 'Words per script section: ' + slideWidget.value;
+
+        //make switch for one or two dependent variables
+        var chartSwitch = document.getElementById("chart-switch");
+        var toggle = document.createElement("input");
+        toggle.setAttribute('type','checkbox');
+        var toggleLabel = document.createElement('label');
+        toggleLabel.setAttribute('class','switch');
+        var toggleSpan = document.createElement('span');
+        toggleSpan.setAttribute('class','slider round');
+        toggleLabel.appendChild(toggle);
+        toggleLabel.appendChild(toggleSpan);
+        chartSwitch.appendChild(toggleLabel);
+
+        //event listener for switch to show/hide single/double bar graph
+        document.getElementById("chart-switch").addEventListener('change',function () {
+            var main = document.getElementById('main-chart');
+            var alt = document.getElementById('chart2');
+            if (main.className.includes('hide')) { //from 2nd to main
+                alt.classList.add('hide');
+                main.classList.remove('hide');
+                document.getElementById('select2').setAttribute('disabled','disabled');
+                document.getElementById('dependent-selector-2').classList.add('grey');
+            } else {                               //from main to 2nd
+                main.classList.add('hide');
+                alt.classList.remove('hide');
+                document.getElementById('select2').removeAttribute('disabled');
+                document.getElementById('dependent-selector-2').classList.remove('grey');
+            }
+        });
+
+        //function to render the script
+        var renderScript = function () {
+            d3.csv('data.csv', function(data) {
+                var binSize = document.getElementById('sliderWidget').value;
+                var wordCount =  data [(data.length-1)]["ORIGINAL_SCRIPT_WORD_INDEX"];
+                //var sectionCount = data [(data.length-1)]["SCRIPT_SECTION"];
+                var sectionCount = Math.floor(wordCount/binSize) + 1;
+                    var sectionedScript = document.getElementById('script');
+
+                //for script formatting
+                var punctuation  = [',', '.', '!', '?', '\''];
+                var endpunctuation =  ['.', '!', '?'];
+                var contractions = ['\'ve', '\'m', '\'ll', '\'re', '\'s', '\'t', 'n\'t', 'na'];
+                var capitals = ['i'];
+                var namesString = document.getElementById('characters').innerText;
+                var namesList = namesString.split(/(\s+)/);
+
+                for (var i = 0; i < sectionCount + 1; i++) {
+                    var sectionSpan = document.createElement('span');
+                    sectionSpan.setAttribute('class', 'script-sections');
+                    sectionSpan.setAttribute('id', 'script-section-' + i);
+                    sectionedScript.append(sectionSpan);
+                }
+
+                for (var j = 0; j < wordCount; j++) {
+                   var selectedWord = data [j]["ORIGINAL_SCRIPT_WORD"];
+                   var wordSpan = document.createElement('span');
+                   wordSpan.setAttribute('class', 'words');
+                   wordSpan.setAttribute('id', 'word-' + j);
+                   //test for empty words
+                   if (selectedWord == '') {
+                       selectedWord = data [j]["LOWERCASE"];
+                   }
+                   var wordIndex = data [j]["ORIGINAL_SCRIPT_WORD_INDEX"];
+                   var section = Math.floor(wordIndex / binSize);
+                   var selectedSpan = document.getElementById('script-section-' + section);
+                   //speaker tags
+                   if (j != 0 && (data [j]["CHARACTER"] != data [j-1]["CHARACTER"])) {
+                       wordSpan.append(document.createElement('br')); //add newline
+                       wordSpan.append(document.createTextNode(' ' + data [j]["CHARACTER"] + ': '));
+                   }
+                   //formatting
+                   if (punctuation.includes(selectedWord) || contractions.includes(selectedWord)) {  //no space before punctuation
+                       wordSpan.append(document.createTextNode(selectedWord));
+                   } else if (j != 0 && endpunctuation.includes(data [j-1]["ORIGINAL_SCRIPT_WORD"])) { //capitalize first word of sentence
+                       wordSpan.append(document.createTextNode(' ' + selectedWord[0].toUpperCase() + selectedWord.slice(1)));
+                   } else if (capitals.includes(selectedWord) || j == 0) { //format things like 'i'
+                       wordSpan.append(document.createTextNode(' ' + selectedWord.toUpperCase()));
+                   } else if (namesList.includes(selectedWord[0].toUpperCase() + selectedWord.slice(1))) { //format names
+                       wordSpan.append(document.createTextNode(' ' + selectedWord[0].toUpperCase() + selectedWord.slice(1)));
+                   } else {
+                       wordSpan.append(document.createTextNode(' ' + selectedWord)); //all other words
+                   }
+                   selectedSpan.append(wordSpan);
+                }
+            });
+        }
+
+    // MAKE CHARTS
+
+        //normal bar graph is the default view
         var chart = dc.barChart("#main-chart");
+        var chart2 = dc.barChart("#chart2");
+
         d3.csv("data.csv", function(error, rawTable) {
+            //d is the key
             var meanAccessor = function(d) { return d.value.sum / d.value.count; };
             var countAccessor = function(d) { return d.value.count; };
             var sumAccessor = function(d) { return d.value.sum; };
 
-            //d = key, i = value (both from data)
             //check if values are numbers
-            //map function takes array and produces another array containing results
-            //of executed callback function
             var likelyNumeric = function(table, key) {
+                //map function takes array and produces another array containing callback results
                 var samples = table.map(function(d) { return +d[key]; });
                 for (var i = 0; i < samples.length; i++) {
                     if (isNaN(samples[i])) {
@@ -213,7 +364,7 @@ Snoke
                     }
                 }
                 return true;
-            };
+            }
 
             //reduce function sums up certain values of keys
             var reduceOnKey = function(dim, key) {
@@ -240,11 +391,14 @@ Snoke
                     }
                 );
             };
-            //dimension defines a column in csv
-            //builds x axis based on what "key" is
-            var independentAxis = function(table, chart, key) {
+
+            //dimension defines a dimension
+            //builds x axis based on "key"
+            var independentAxis = function(table, chart, key, bin) {
+                bin = bin || 100;
+
                 var modifyAxis = function(d) {
-                    return Math.floor(+d[key]/100);
+                    return Math.floor(+d[key]/bin);
                 }
                 var dim = table.dimension(modifyAxis);
                 //var hi = +dim.top(1)[0][key] + 1;
@@ -252,7 +406,8 @@ Snoke
                 var hi = modifyAxis(dim.top(1)[0])+1;
                 var lo = modifyAxis(dim.bottom(1)[0]);
                 chart.x(d3.scale.linear().domain([lo, hi]));
-                chart.xAxisLabel(key);
+                chart.xAxisLabel('Script Section');
+                //chart.xAxisLabel(key);
                 chart.xAxis().tickFormat(d3.format("d"));
                 chart.dimension(dim);
                 return dim;
@@ -298,6 +453,7 @@ Snoke
                      }
                      console.log(d.data.value);
                      console.log("key: " + d.data.key);
+
                      var highlights = document.getElementsByClassName('highlight');
                      for (var c = 0; c < highlights.length; c++) {
                          highlights[c].setAttribute('class','script-section');
@@ -310,17 +466,18 @@ Snoke
                          wordHighlights[a].setAttribute('class','words');
                      }
                      d3.csv('data.csv', function(data) {
+                        var binSize = document.getElementById('sliderWidget').value;
                         var scriptSection = d.data.key;
                         var totalWords = data [(data.length-1)]["ORIGINAL_SCRIPT_WORD_INDEX"];
                         var searchEnd;
                         var matches = []; //to account for multiple words highlighted in one section
-                        if (((scriptSection + 1)*100)>totalWords) {
+                        if (((scriptSection + 1)*binSize)>totalWords) {
                           searchEnd = totalWords;
                         }
                         else {
-                          searchEnd = (scriptSection + 1)*100;
+                          searchEnd = (scriptSection + 1)*binSize;
                         }
-                        for (var j = (scriptSection*100); j < searchEnd; j++) {
+                        for (var j = (scriptSection*binSize); j < searchEnd; j++) {
                           if (data [j] ["LOWERCASE"] == textBox.value) {
                             var wordIndex = data [j] ["ORIGINAL_SCRIPT_WORD_INDEX"];
                             matches.push(wordIndex);
@@ -377,67 +534,113 @@ Snoke
                         sel.options[sel.selectedIndex].value, //value in dropdown
                         searchTerms //value in textbox
                     );
-
                   }
-              }
-            });
-            // filterAxis(cfTable, "LOWERCASE", "force");
-            dependentAxis(indepDim, chart, keys[1]);
-            d3.csv('data.csv', function(data) {
-                var wordCount =  data [(data.length-1)]["ORIGINAL_SCRIPT_WORD_INDEX"];
-                var sectionCount = Math.floor(wordCount/100) + 1;
-                var sectionedScript = document.getElementById('script');
-                //for script formatting
-                var punctuation  = [',', '.', '!', '?', '\'', '"'];
-                var endpunctuation =  ['.', '!', '?', '."'];
-                var contractions = ['\'ve', '\'m', '\'ll', '\'re', '\'s', '\'t', 'n\'t'];
-                var capitals = ['i'];
-                var namesString = document.getElementById('characters').innerText;
-                var namesList = namesString.split(/(\s+)/);
-                for (var i = 0; i < sectionCount + 1; i++) {
-                    var sectionSpan = document.createElement('span');
-                    sectionSpan.setAttribute('class', 'script-sections');
-                    sectionSpan.setAttribute('id', 'script-section-' + i);
-                    sectionedScript.append(sectionSpan);
-                }
-                for (var j = 0; j < wordCount; j++) {
-                    var selectedWord = data [j]["ORIGINAL_SCRIPT_WORD"];
-                    var wordSpan = document.createElement('span');
-                    wordSpan.setAttribute('class', 'words');
-                    wordSpan.setAttribute('id', 'word-' + j);
-                    //test for empty words
-                    if (selectedWord == '') {
-                        selectedWord = data [j]["LOWERCASE"];
-                    }
-                    var wordIndex = data [j]["ORIGINAL_SCRIPT_WORD_INDEX"];
-                    var section = Math.floor(wordIndex / 100);
-                    var selectedSpan = document.getElementById('script-section-' + section);
-                    //speaker tags
-                    if (j != 0 && (data [j]["CHARACTER"] != data [j-1]["CHARACTER"])) {
-                        wordSpan.append(document.createElement('br')); //add newline
-                        wordSpan.append(document.createTextNode(' ' + data [j]["CHARACTER"] + ': '));
-                    }
-                    //formatting
-                    if (punctuation.includes(selectedWord) || contractions.includes(selectedWord)) {  //no space before punctuation
-                        wordSpan.append(document.createTextNode(selectedWord));
-                    } else if (j != 0 && endpunctuation.includes(data [j-1]["ORIGINAL_SCRIPT_WORD"])) { //capitalize first word of sentence
-                        wordSpan.append(document.createTextNode(' ' + selectedWord[0].toUpperCase() + selectedWord.slice(1)));
-                    } else if (capitals.includes(selectedWord) || j == 0) { //format things like 'i'
-                        wordSpan.append(document.createTextNode(' ' + selectedWord.toUpperCase()));
-                    } else if (namesList.includes(selectedWord[0].toUpperCase() + selectedWord.slice(1))) { //format names
-                        wordSpan.append(document.createTextNode(' ' + selectedWord[0].toUpperCase() + selectedWord.slice(1)));
-                    } else {
-                        wordSpan.append(document.createTextNode(' ' + selectedWord)); //all other words
-                    }
-                    selectedSpan.append(wordSpan);
                 }
             });
-        });
-        </script>
-        <div id="fanwork">
-            <h1> Insert matches here </h1>
-        </div>
-        </div>
 
-        </div>
-</body>
+            // CHART 2
+            chart2.margins({top: 50, right: 50, bottom: 50, left: 50})
+                 .brushOn(false)
+                 .valueAccessor(sumAccessor)
+                 .gap(0)
+                 .ordinalColors(['#e41a1c','#377eb8','#4daf4a','#984ea3','#ff7f00','#ffff33','#a65628'])
+                 .on("renderlet.chart", function(chart2) {
+                     chart2.selectAll('rect').on('click', function(d) {
+                     //console.log(d.data.key);
+                     var highlights = document.getElementsByClassName('highlight');
+                     for (var c = 0; c < highlights.length; c++) {
+                         highlights[c].setAttribute('class','script-section');
+                     }
+                     var currentSpan = document.getElementById('script-section-' + d.data.key);
+                     currentSpan.scrollIntoView();
+                     currentSpan.setAttribute('class','script-sections highlight');
+                     })
+                 });
+
+            var indepDim2 = independentAxis(cfTable, chart2, "ORIGINAL_SCRIPT_WORD_INDEX");
+
+            var sel2 = document.createElement("select");
+            sel2.id = 'select2';
+            document.getElementById("dependent-selector-2").appendChild(sel2);
+            for (var k = 0; k < keys.length; k++) {
+                var key = keys[k];
+                sel2.options[sel2.options.length] = new Option(key, key);
+            }
+            sel2.options[1].selected = true;
+            sel2.addEventListener("change", function() {
+                dependentAxis(indepDim2, chart2, this.value);
+            });
+            textBox.addEventListener("keypress", function(e) {
+              if (e.keyCode == 13) {
+                  if (this.value == "") {
+                    var searchTerms = this.value;
+                    console.log(searchTerms);
+                    filterAxis(cfTable, "LOWERCASE", searchTerms);
+                    dependentAxis(
+                        indepDim2,
+                        chart2,
+                        sel.options[sel.selectedIndex].value, //value in dropdown
+                        searchTerms //value in textbox
+                    );
+                  }
+                  else {
+                    var searchTerms = this.value.toLowerCase();
+                    searchTerms = searchTerms.replace(/^[ \t]+|[ \t]+$/, '');
+                    filterAxis(cfTable, "LOWERCASE", searchTerms);
+                    console.log(searchTerms);
+                    dependentAxis(
+                        indepDim2,
+                        chart2,
+                        sel.options[sel.selectedIndex].value, //value in dropdown
+                        searchTerms //value in textbox
+                    );
+                  }
+                }
+            });
+
+            slideWidget.oninput = function () {
+                //remove script section highlighting from previous bin size
+                var highlights = document.getElementsByClassName('highlight');
+                for (var c = 0; c < highlights.length; c++) {
+                    highlights[c].setAttribute('class','script-section');
+                }
+
+                //print current slider value
+                var out = document.getElementById('output');
+                out.innerHTML = 'Words per script section: ' + this.value;
+
+                //remake plots with new bin size
+                indepDim = independentAxis(cfTable, chart, "ORIGINAL_SCRIPT_WORD_INDEX", slideWidget.value);
+                dependentAxis(indepDim, chart, sel.options[sel.selectedIndex].value);
+                indepDim.dispose(); //get rid of the dimension b/c of 32 dim max
+
+                indepDim2 = independentAxis(cfTable, chart2, "ORIGINAL_SCRIPT_WORD_INDEX", slideWidget.value);
+                dependentAxis(indepDim2, chart2, sel2.options[sel2.selectedIndex].value);
+                indepDim2.dispose();
+
+                var selection = this.value;
+                var callback = function (val) {
+                    if (val == document.getElementById('sliderWidget').value) {
+                        document.getElementById('script').innerHTML = ''; //remove previous version of scriont
+                        renderScript(); //rewrite script with new bin size/script section sizes
+                    }
+                }
+                setTimeout(callback, 1000, selection);
+            }
+
+            //render charts; 1 is positive match as y-axis
+            dependentAxis(indepDim, chart, keys[1]);
+            dependentAxis(indepDim2, chart2, keys[1]);
+
+            renderScript();
+
+            document.getElementById("chart2").classList.add('hide'); //default hide double bar graph
+            document.getElementById('select2').setAttribute('disabled','disabled');
+            document.getElementById('dependent-selector-2').classList.add('grey');
+        }); // end second chart
+
+
+
+        </script>
+    </div> <!-- end content div -->
+</body> <!-- end body div -->
