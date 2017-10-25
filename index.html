@@ -5,6 +5,7 @@
     <script src="https://dc-js.github.io/dc.js/js/d3.js"></script>
     <script src="https://dc-js.github.io/dc.js/js/crossfilter.js"></script>
     <script src="https://dc-js.github.io/dc.js/js/dc.js"></script>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/reductio/0.6.3/reductio.js"></script>
     <script src="https://npmcdn.com/universe@latest/universe.js"></script>
     <style>
@@ -203,16 +204,17 @@ Jedi
         </div>
     </div>
     <div id="fanwork"></div>
+
     <script>
 
         //make slider widget for binsize - default 100 word script secitons
         var slideWidget = document.createElement('input');
         slideWidget.id = 'sliderWidget';
         slideWidget.setAttribute('type','range');
-        slideWidget.setAttribute('min','5');
+        slideWidget.setAttribute('min','20');
         slideWidget.setAttribute('max','1000');
         slideWidget.setAttribute('step','5');
-        slideWidget.setAttribute('value','100');
+        slideWidget.setAttribute('value','250');
         var slider = document.getElementById('input');
         slider.appendChild(slideWidget);
         document.getElementById('output').innerHTML = 'Words per script section: ' + slideWidget.value;
@@ -304,13 +306,14 @@ Jedi
             });
         }
 
-    // MAKE CHARTS
+        // MAKE CHARTS
 
         //normal bar graph is the default view
         var chart = dc.barChart("#main-chart");
-        var chart2 = dc.barChart("#chart2");
-
+        //var chart2 = dc.seriesChart("#chart2");
+        var chart2 = dc.compositeChart("#chart2");
         d3.csv("data.csv", function(error, rawTable) {
+
             //d is the key
             var meanAccessor = function(d) { return d.value.sum / d.value.count; };
             var countAccessor = function(d) { return d.value.count; };
@@ -361,16 +364,15 @@ Jedi
             //dimension defines a dimension
             //builds x axis based on "key"
             var independentAxis = function(table, chart, key, bin) {
-                bin = bin || 100;
+                bin = bin || 250;
 
                 var modifyAxis = function(d) {
                     return Math.floor(+d[key]/bin);
                 }
 
                 var dim = table.dimension(modifyAxis);
-                //var hi = +dim.top(1)[0][key] + 1;
-                //var lo = +dim.bottom(1)[0][key];
-                var hi = modifyAxis(dim.top(1)[0])+1;
+                //var hi = modifyAxis(dim.top(1)[0])+1;
+                var hi = modifyAxis(dim.top(1)[0]);
                 var lo = modifyAxis(dim.bottom(1)[0]);
                 chart.x(d3.scale.linear().domain([lo, hi]));
                 chart.xAxisLabel('Script Section');
@@ -386,14 +388,15 @@ Jedi
                 var group;
                 if (likelyNumeric(rawTable, key)) {
                     group = reduceOnKey(dim, key);
+                    //console.log('num');
                 } else {
                     group = reduceOnKeySubstring(dim, key, sub);
+                    //console.log('not num');
                 }
 
                 //reduce function sums up all matches (values) of keys at certain
                 //script section
                 var all = group.all().map(sumAccessor);
-                // console.log(all);
                 chart.y(d3.scale.linear().domain([0, d3.max(all)]));
                 // console.log(d3.max(all));
                 chart.yAxisLabel(key).group(group);
@@ -431,6 +434,7 @@ Jedi
 
             sel.addEventListener("change", function() {
                 dependentAxis(indepDim, chart, this.value);
+                makeChart(chart2);
             });
 
             var textBox = document.createElement("input");
@@ -444,27 +448,7 @@ Jedi
                 );
             });
 
-            // CHART 2
-            chart2.margins({top: 50, right: 50, bottom: 50, left: 50})
-                 .brushOn(false)
-                 .valueAccessor(sumAccessor)
-                 .gap(0)
-                 .ordinalColors(['#e41a1c','#377eb8','#4daf4a','#984ea3','#ff7f00','#ffff33','#a65628'])
-                 .on("renderlet.chart", function(chart2) {
-                     chart2.selectAll('rect').on('click', function(d) {
-                     //console.log(d.data.key);
-                     var highlights = document.getElementsByClassName('highlight');
-                     for (var c = 0; c < highlights.length; c++) {
-                         highlights[c].setAttribute('class','script-section');
-                     }
-                     var currentSpan = document.getElementById('script-section-' + d.data.key);
-                     currentSpan.scrollIntoView();
-                     currentSpan.setAttribute('class','script-sections highlight');
-                     })
-                 });
-
-            var indepDim2 = independentAxis(cfTable, chart2, "ORIGINAL_SCRIPT_WORD_INDEX");
-
+            //chart 2
             var sel2 = document.createElement("select");
             sel2.id = 'select2';
             document.getElementById("dependent-selector-2").appendChild(sel2);
@@ -475,8 +459,61 @@ Jedi
             sel2.options[1].selected = true;
             sel2.addEventListener("change", function() {
                 dependentAxis(indepDim2, chart2, this.value);
+                makeChart(chart2);
             });
 
+            function scaleYAxis() {
+                var op1 = d3.max(reduceOnKey(indepDim, sel.options[sel.selectedIndex].value).all().map(sumAccessor));
+                var op2 = d3.max(reduceOnKey(indepDim, sel2.options[sel2.selectedIndex].value).all().map(sumAccessor));
+                return Math.max(op1,op2);
+            }
+
+            var indepDim2 = independentAxis(cfTable, chart2, "ORIGINAL_SCRIPT_WORD_INDEX");
+
+            function makeChart(chart) {
+                chart.brushOn(false)
+                    .renderVerticalGridLines(true)
+                    .renderHorizontalGridLines(true)
+                    //.y(d3.scale.linear().domain([0, d3.max(reduceOnKey(indepDim, sel.options[sel.selectedIndex].value).all().map(sumAccessor))]))
+                    .y(d3.scale.linear().domain([0, scaleYAxis()]))
+                    .compose([
+                        dc.lineChart(chart)
+                            .valueAccessor(sumAccessor)
+                            .colors('blue')
+                            .interpolate('monotone')
+                            .renderDataPoints({radius: 1.5, fillOpacity: 0.8, strokeOpacity: 0.8})
+                            .renderArea(true)
+                            .dashStyle([5,5,5,5])
+                            .group(reduceOnKey(indepDim, sel.options[sel.selectedIndex].value))
+                            .title(function(d){
+                                return d.data.key
+                            }),
+                        dc.lineChart(chart)
+                            .valueAccessor(sumAccessor)
+                            .colors('#D32A3E')
+                            .interpolate('monotone')
+                            //.renderArea(true)
+                            .renderDataPoints({radius: 1.5, fillOpacity: 0.8, strokeOpacity: 0.8})
+                            .group(reduceOnKey(indepDim2, sel2.options[sel2.selectedIndex].value))
+                    ])
+                    .on("renderlet", function(chart) {
+                        chart.selectAll('circle.dot').on('click.section', function(d) {
+                            var highlights = document.getElementsByClassName('highlight');
+                            for (var c = 0; c < highlights.length; c++) {
+                                highlights[c].setAttribute('class','script-section');
+                            }
+                            var currentSpan = document.getElementById('script-section-' + d.data.key);
+                            currentSpan.scrollIntoView();
+                            currentSpan.setAttribute('class','script-sections highlight');
+                        })
+                    })
+                    .render()
+            }
+            makeChart(chart2);
+            //dependentAxis(indepDim2, chart2, keys[1]);
+            // end chart 2
+
+            // FOR BOTH CHARTS
             slideWidget.oninput = function () {
                 //remove script section highlighting from previous bin size
                 var highlights = document.getElementsByClassName('highlight');
@@ -496,6 +533,7 @@ Jedi
                 indepDim2 = independentAxis(cfTable, chart2, "ORIGINAL_SCRIPT_WORD_INDEX", slideWidget.value);
                 dependentAxis(indepDim2, chart2, sel2.options[sel2.selectedIndex].value);
                 indepDim2.dispose();
+                makeChart(chart2);
 
                 var selection = this.value;
                 var callback = function (val) {
@@ -509,14 +547,13 @@ Jedi
 
             //render charts; 1 is positive match as y-axis
             dependentAxis(indepDim, chart, keys[1]);
-            dependentAxis(indepDim2, chart2, keys[1]);
-
+            //dependentAxis(indepDim2, chart2, keys[1]);
             renderScript();
 
             document.getElementById("chart2").classList.add('hide'); //default hide double bar graph
             document.getElementById('select2').setAttribute('disabled','disabled');
             document.getElementById('dependent-selector-2').classList.add('grey');
-        }); // end second chart
+        });
 
 
 
