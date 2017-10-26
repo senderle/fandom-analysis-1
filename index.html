@@ -12,6 +12,7 @@
         #content, html, body {
             height: 98vh;
         }
+
         #script {
             float: left;
             width: 49%;
@@ -21,8 +22,7 @@
         #main-chart {
             position: absolute;
             top: 0;
-            right: 0;
-            /*float: right;*/
+            right: 5px;
             width: 50%;
             height: 45%;
         }
@@ -30,10 +30,11 @@
         #chart2 {
             position: absolute;
             top: 0;
-            right: 0;
-            /*float: right;*/
+            right: 5px;
             width: 50%;
             height: 45%;
+            max-width: 50%;
+            max-height: 45%;
         }
 
         #filter {
@@ -56,7 +57,6 @@
             position: absolute;
             right: 0;
             bottom: 0;
-            /*float: right;*/
             width: 50%;
             height: 32%;
             overflow-y: scroll;
@@ -94,7 +94,6 @@
             /* color: rgba(0, 0, 0, 1.0); */
         }
         .hide {
-            /*display: none;*/
             visibility: hidden;
         }
 
@@ -138,7 +137,6 @@
           background-color: rgba(0,0,0,0.2);
           -webkit-transition: .4s;
           transition: .4s;
-          /*border-radius: 22px;*/
         }
         .slider:before {
           position: absolute;
@@ -150,7 +148,6 @@
           background-color: white;
           -webkit-transition: .4s;
           transition: .4s;
-          /*border-radius: 50%;*/
         }
         input:checked + .slider {
           background-color: #2196F3;
@@ -207,7 +204,7 @@ Jedi
 
     <script>
 
-        //make slider widget for binsize - default 100 word script secitons
+        //make slider widget for binsize - default 250 word script secitons
         var slideWidget = document.createElement('input');
         slideWidget.id = 'sliderWidget';
         slideWidget.setAttribute('type','range');
@@ -406,7 +403,11 @@ Jedi
             chart.margins({top: 50, right: 50, bottom: 50, left: 50})
                  .brushOn(false)
                  .valueAccessor(sumAccessor)
-                 .gap(0)
+                 .gap(0.2)
+                 .ordinalColors(['rgba(0,0,255,.5)'])
+                 //.colors(rgba(0,0,255,0.3))
+                 .renderVerticalGridLines(true)
+                 .renderHorizontalGridLines(true)
                  .on("renderlet.chart", function(chart) {
                      chart.selectAll('rect').on('click', function(d) {
                      var highlights = document.getElementsByClassName('highlight');
@@ -462,26 +463,28 @@ Jedi
                 makeChart(chart2);
             });
 
-            function scaleYAxis() {
+            function scaleYAxis(right) {
                 var op1 = d3.max(reduceOnKey(indepDim, sel.options[sel.selectedIndex].value).all().map(sumAccessor));
                 var op2 = d3.max(reduceOnKey(indepDim, sel2.options[sel2.selectedIndex].value).all().map(sumAccessor));
-                return Math.max(op1,op2);
+                return right ? op2 : op1;
             }
 
             var indepDim2 = independentAxis(cfTable, chart2, "ORIGINAL_SCRIPT_WORD_INDEX");
 
             function makeChart(chart) {
-                chart.brushOn(false)
+                chart.margins({top: 50, right: 55, bottom: 50, left: 50})
+                    .brushOn(false)
                     .renderVerticalGridLines(true)
                     .renderHorizontalGridLines(true)
                     //.y(d3.scale.linear().domain([0, d3.max(reduceOnKey(indepDim, sel.options[sel.selectedIndex].value).all().map(sumAccessor))]))
                     .y(d3.scale.linear().domain([0, scaleYAxis()]))
+                    .elasticY(true)
                     .compose([
                         dc.lineChart(chart)
                             .valueAccessor(sumAccessor)
                             .colors('blue')
                             .interpolate('monotone')
-                            .renderDataPoints({radius: 1.5, fillOpacity: 0.8, strokeOpacity: 0.8})
+                            .renderDataPoints({radius: 3, fillOpacity: 0.8, strokeOpacity: 0.8})
                             .renderArea(true)
                             .dashStyle([5,5,5,5])
                             .group(reduceOnKey(indepDim, sel.options[sel.selectedIndex].value))
@@ -492,10 +495,12 @@ Jedi
                             .valueAccessor(sumAccessor)
                             .colors('#D32A3E')
                             .interpolate('monotone')
-                            //.renderArea(true)
-                            .renderDataPoints({radius: 1.5, fillOpacity: 0.8, strokeOpacity: 0.8})
+                            .useRightYAxis(true)
+                            .renderDataPoints({radius: 3, fillOpacity: 0.8, strokeOpacity: 0.8})
                             .group(reduceOnKey(indepDim2, sel2.options[sel2.selectedIndex].value))
                     ])
+                    .yAxisLabel(sel.options[sel.selectedIndex].value + ' (blue area)')
+                    .rightYAxisLabel(sel2.options[sel2.selectedIndex].value + ' (red line)')
                     .on("renderlet", function(chart) {
                         chart.selectAll('circle.dot').on('click.section', function(d) {
                             var highlights = document.getElementsByClassName('highlight');
