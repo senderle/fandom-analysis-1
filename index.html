@@ -401,8 +401,8 @@ Jedi
                     return Math.floor(+d[key]/bin);
                 }
                 var dim = table.dimension(modifyAxis);
-                //var hi = modifyAxis(dim.top(1)[0])+1;
-                var hi = modifyAxis(dim.top(1)[0]);
+                var hi = modifyAxis(dim.top(1)[0])+1;
+                // var hi = modifyAxis(dim.top(1)[0]);
                 var lo = modifyAxis(dim.bottom(1)[0]);
                 chart.x(d3.scale.linear().domain([lo, hi]));
                 chart.xAxisLabel('Script Section');
@@ -430,14 +430,6 @@ Jedi
                 var group;
                 // if (likelyNumeric (rawTable, key)) {
                     group = reduceOnKey(dim, key);
-                // } else {
-                //     group = reduceOnKeySubstring(dim, key, sub);
-                // }
-                    //console.log('num');
-                } else {
-                    group = reduceOnKeySubstring(dim, key, sub);
-                    //console.log('not num');
-                }
 
                 //reduce function sums up all matches (values) of keys at certain
                 //script section
@@ -458,7 +450,8 @@ Jedi
                      chart.selectAll('rect').on('click', function(d) {
                      var wordHs = document.getElementsByClassName('words highlight');
                      for (var a = 0; a < wordHs.length; a++) {
-                       wordHs[a].removeAttribute('class', 'words higlight');
+                       wordHs[a].removeAttribute('class', 'words highlight');
+                       console.log('1');
                      }
                      console.log(d.data.value);
                      console.log("key: " + d.data.key);
@@ -647,6 +640,11 @@ Jedi
             // FOR BOTH CHARTS
             slideWidget.oninput = function () {
                 //remove script section highlighting from previous bin size
+                var wordHs = document.getElementsByClassName('words highlight');
+                for (var a = 0; a < wordHs.length; a++) {
+                  wordHs[a].removeAttribute('class', 'words highlight');
+                  console.log('2');
+                }
                 var highlights = document.getElementsByClassName('highlight');
                 for (var c = 0; c < highlights.length; c++) {
                     highlights[c].setAttribute('class','script-section');
@@ -658,23 +656,15 @@ Jedi
 
                 //remake plots with new bin size
                 indepDim = independentAxis(cfTable, chart, "ORIGINAL_SCRIPT_WORD_INDEX", slideWidget.value);
-                dependentAxis(indepDim, chart, sel.options[sel.selectedIndex].value);
-                // textBox.addEventListener("keypress", function(e) {
-                //   if (e.keyCode == 13) {
-                //     filterAxis(cfTable, "LOWERCASE", this.value);
-                //     dependentAxis(indepDim, chart, sel.options[sel.selectedIndex].value, this.value);
-                //   }
-                // });
+                // dependentAxis(indepDim, chart, sel.options[sel.selectedIndex].value);
+                filterAxis(cfTable, "LOWERCASE", textBox.value);
+                dependentAxis(indepDim, chart, sel.options[sel.selectedIndex].value, textBox.value);
                 indepDim.dispose(); //get rid of the dimension b/c of 32 dim max
 
                 indepDim2 = independentAxis(cfTable, chart2, "ORIGINAL_SCRIPT_WORD_INDEX", slideWidget.value);
-                dependentAxis(indepDim2, chart2, sel2.options[sel2.selectedIndex].value);
-                // textBox.addEventListener("keypress", function(e) {
-                //   if (e.keyCode == 13) {
-                //     filterAxis(cfTable, "LOWERCASE", this.value);
-                //     dependentAxis(indepDim2, chart2, sel2.options[sel2.selectedIndex].value, this.value);
-                //   }
-                // });
+                // dependentAxis(indepDim2, chart2, sel2.options[sel2.selectedIndex].value);
+                filterAxis(cfTable, "LOWERCASE", textBox.value);
+                dependentAxis(indepDim2, chart, sel2.options[sel2.selectedIndex].value, textBox.value);
                 indepDim2.dispose();
                 makeChart(chart2);
 
