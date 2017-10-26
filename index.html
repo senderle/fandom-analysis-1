@@ -5,6 +5,7 @@
     <script src="https://dc-js.github.io/dc.js/js/d3.js"></script>
     <script src="https://dc-js.github.io/dc.js/js/crossfilter.js"></script>
     <script src="https://dc-js.github.io/dc.js/js/dc.js"></script>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/reductio/0.6.3/reductio.js"></script>
     <script src="https://npmcdn.com/universe@latest/universe.js"></script>
     <script src="https://cdn.jsdelivr.net/lodash/4.17.4/lodash.min.js"></script>
@@ -12,6 +13,7 @@
         #content, html, body {
             height: 98vh;
         }
+
         #script {
             float: left;
             width: 49%;
@@ -21,8 +23,7 @@
         #main-chart {
             position: absolute;
             top: 0;
-            right: 0;
-            /*float: right;*/
+            right: 5px;
             width: 50%;
             height: 45%;
         }
@@ -30,10 +31,11 @@
         #chart2 {
             position: absolute;
             top: 0;
-            right: 0;
-            /*float: right;*/
+            right: 5px;
             width: 50%;
             height: 45%;
+            max-width: 50%;
+            max-height: 45%;
         }
 
         #filter {
@@ -56,7 +58,6 @@
             position: absolute;
             right: 0;
             bottom: 0;
-            /*float: right;*/
             width: 50%;
             height: 32%;
             overflow-y: scroll;
@@ -98,7 +99,6 @@
             /* color: rgba(0, 0, 0, 1.0); */
         }
         .hide {
-            /*display: none;*/
             visibility: hidden;
         }
 
@@ -142,7 +142,6 @@
           background-color: rgba(0,0,0,0.2);
           -webkit-transition: .4s;
           transition: .4s;
-          /*border-radius: 22px;*/
         }
         .slider:before {
           position: absolute;
@@ -154,7 +153,6 @@
           background-color: white;
           -webkit-transition: .4s;
           transition: .4s;
-          /*border-radius: 50%;*/
         }
         input:checked + .slider {
           background-color: #2196F3;
@@ -241,16 +239,17 @@ Jedi
         </div>
     </div>
     <div id="fanwork"></div>
+
     <script>
 
-        //make slider widget for binsize - default 100 word script secitons
+        //make slider widget for binsize - default 250 word script secitons
         var slideWidget = document.createElement('input');
         slideWidget.id = 'sliderWidget';
         slideWidget.setAttribute('type','range');
-        slideWidget.setAttribute('min','5');
+        slideWidget.setAttribute('min','20');
         slideWidget.setAttribute('max','1000');
         slideWidget.setAttribute('step','5');
-        slideWidget.setAttribute('value','100');
+        slideWidget.setAttribute('value','250');
         var slider = document.getElementById('input');
         slider.appendChild(slideWidget);
         document.getElementById('output').innerHTML = 'Words per script section: ' + slideWidget.value;
@@ -342,13 +341,14 @@ Jedi
             });
         }
 
-    // MAKE CHARTS
+        // MAKE CHARTS
 
         //normal bar graph is the default view
         var chart = dc.barChart("#main-chart");
-        var chart2 = dc.barChart("#chart2");
-
+        //var chart2 = dc.seriesChart("#chart2");
+        var chart2 = dc.compositeChart("#chart2");
         d3.csv("data.csv", function(error, rawTable) {
+
             //d is the key
             var meanAccessor = function(d) { return d.value.sum / d.value.count; };
             var countAccessor = function(d) { return d.value.count; };
@@ -395,15 +395,14 @@ Jedi
             //dimension defines a dimension
             //builds x axis based on "key"
             var independentAxis = function(table, chart, key, bin) {
-                bin = bin || 100;
+                bin = bin || 250;
 
                 var modifyAxis = function(d) {
                     return Math.floor(+d[key]/bin);
                 }
                 var dim = table.dimension(modifyAxis);
-                //var hi = +dim.top(1)[0][key] + 1;
-                //var lo = +dim.bottom(1)[0][key];
-                var hi = modifyAxis(dim.top(1)[0])+1;
+                //var hi = modifyAxis(dim.top(1)[0])+1;
+                var hi = modifyAxis(dim.top(1)[0]);
                 var lo = modifyAxis(dim.bottom(1)[0]);
                 chart.x(d3.scale.linear().domain([lo, hi]));
                 chart.xAxisLabel('Script Section');
@@ -434,6 +433,12 @@ Jedi
                 // } else {
                 //     group = reduceOnKeySubstring(dim, key, sub);
                 // }
+                    //console.log('num');
+                } else {
+                    group = reduceOnKeySubstring(dim, key, sub);
+                    //console.log('not num');
+                }
+
                 //reduce function sums up all matches (values) of keys at certain
                 //script section
                 var all = group.all().map(sumAccessor);
@@ -444,7 +449,11 @@ Jedi
             chart.margins({top: 50, right: 50, bottom: 50, left: 50})
                  .brushOn(false)
                  .valueAccessor(sumAccessor)
-                 .gap(0)
+                 .gap(0.2)
+                 .ordinalColors(['rgba(0,0,255,.5)'])
+                 //.colors(rgba(0,0,255,0.3))
+                 .renderVerticalGridLines(true)
+                 .renderHorizontalGridLines(true)
                  .on("renderlet.chart", function(chart) {
                      chart.selectAll('rect').on('click', function(d) {
                      var wordHs = document.getElementsByClassName('words highlight');
@@ -507,6 +516,7 @@ Jedi
             sel.options[0].selected = true;
             sel.addEventListener("change", function() {
                 dependentAxis(indepDim, chart, this.value);
+                makeChart(chart2);
             });
             var textBox = document.createElement("input");
             document.getElementById("text-search").appendChild(textBox);
@@ -538,27 +548,7 @@ Jedi
                 }
             });
 
-            // CHART 2
-            chart2.margins({top: 50, right: 50, bottom: 50, left: 50})
-                 .brushOn(false)
-                 .valueAccessor(sumAccessor)
-                 .gap(0)
-                 .ordinalColors(['#e41a1c','#377eb8','#4daf4a','#984ea3','#ff7f00','#ffff33','#a65628'])
-                 .on("renderlet.chart", function(chart2) {
-                     chart2.selectAll('rect').on('click', function(d) {
-                     //console.log(d.data.key);
-                     var highlights = document.getElementsByClassName('highlight');
-                     for (var c = 0; c < highlights.length; c++) {
-                         highlights[c].setAttribute('class','script-section');
-                     }
-                     var currentSpan = document.getElementById('script-section-' + d.data.key);
-                     currentSpan.scrollIntoView();
-                     currentSpan.setAttribute('class','script-sections highlight');
-                     })
-                 });
-
-            var indepDim2 = independentAxis(cfTable, chart2, "ORIGINAL_SCRIPT_WORD_INDEX");
-
+            //chart 2
             var sel2 = document.createElement("select");
             sel2.id = 'select2';
             document.getElementById("dependent-selector-2").appendChild(sel2);
@@ -569,6 +559,7 @@ Jedi
             sel2.options[1].selected = true;
             sel2.addEventListener("change", function() {
                 dependentAxis(indepDim2, chart2, this.value);
+                makeChart(chart2);
             });
             textBox.addEventListener("keypress", function(e) {
               if (e.keyCode == 13) {
@@ -598,6 +589,62 @@ Jedi
                 }
             });
 
+            function scaleYAxis(right) {
+                var op1 = d3.max(reduceOnKey(indepDim, sel.options[sel.selectedIndex].value).all().map(sumAccessor));
+                var op2 = d3.max(reduceOnKey(indepDim, sel2.options[sel2.selectedIndex].value).all().map(sumAccessor));
+                return right ? op2 : op1;
+            }
+
+            var indepDim2 = independentAxis(cfTable, chart2, "ORIGINAL_SCRIPT_WORD_INDEX");
+
+            function makeChart(chart) {
+                chart.margins({top: 50, right: 55, bottom: 50, left: 50})
+                    .brushOn(false)
+                    .renderVerticalGridLines(true)
+                    .renderHorizontalGridLines(true)
+                    //.y(d3.scale.linear().domain([0, d3.max(reduceOnKey(indepDim, sel.options[sel.selectedIndex].value).all().map(sumAccessor))]))
+                    .y(d3.scale.linear().domain([0, scaleYAxis()]))
+                    .elasticY(true)
+                    .compose([
+                        dc.lineChart(chart)
+                            .valueAccessor(sumAccessor)
+                            .colors('blue')
+                            .interpolate('monotone')
+                            .renderDataPoints({radius: 3, fillOpacity: 0.8, strokeOpacity: 0.8})
+                            .renderArea(true)
+                            .dashStyle([5,5,5,5])
+                            .group(reduceOnKey(indepDim, sel.options[sel.selectedIndex].value))
+                            .title(function(d){
+                                return d.data.key
+                            }),
+                        dc.lineChart(chart)
+                            .valueAccessor(sumAccessor)
+                            .colors('#D32A3E')
+                            .interpolate('monotone')
+                            .useRightYAxis(true)
+                            .renderDataPoints({radius: 3, fillOpacity: 0.8, strokeOpacity: 0.8})
+                            .group(reduceOnKey(indepDim2, sel2.options[sel2.selectedIndex].value))
+                    ])
+                    .yAxisLabel(sel.options[sel.selectedIndex].value + ' (blue area)')
+                    .rightYAxisLabel(sel2.options[sel2.selectedIndex].value + ' (red line)')
+                    .on("renderlet", function(chart) {
+                        chart.selectAll('circle.dot').on('click.section', function(d) {
+                            var highlights = document.getElementsByClassName('highlight');
+                            for (var c = 0; c < highlights.length; c++) {
+                                highlights[c].setAttribute('class','script-section');
+                            }
+                            var currentSpan = document.getElementById('script-section-' + d.data.key);
+                            currentSpan.scrollIntoView();
+                            currentSpan.setAttribute('class','script-sections highlight');
+                        })
+                    })
+                    .render()
+            }
+            makeChart(chart2);
+            //dependentAxis(indepDim2, chart2, keys[1]);
+            // end chart 2
+
+            // FOR BOTH CHARTS
             slideWidget.oninput = function () {
                 //remove script section highlighting from previous bin size
                 var highlights = document.getElementsByClassName('highlight');
@@ -629,6 +676,7 @@ Jedi
                 //   }
                 // });
                 indepDim2.dispose();
+                makeChart(chart2);
 
                 var selection = this.value;
                 var callback = function (val) {
@@ -642,14 +690,13 @@ Jedi
 
             //render charts; 1 is positive match as y-axis
             dependentAxis(indepDim, chart, keys[1]);
-            dependentAxis(indepDim2, chart2, keys[1]);
-
+            //dependentAxis(indepDim2, chart2, keys[1]);
             renderScript();
 
             document.getElementById("chart2").classList.add('hide'); //default hide double bar graph
             document.getElementById('select2').setAttribute('disabled','disabled');
             document.getElementById('dependent-selector-2').classList.add('grey');
-        }); // end second chart
+        });
 
 
 
