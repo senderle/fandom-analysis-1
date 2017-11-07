@@ -419,14 +419,21 @@ Jedi
                 chart.dimension(dim);
                 return dim;
             }
-            var sortAxis = function(table, key) {
+            var sortAxis = function(table, key, scriptStart, scriptEnd) {
                 var match = function (d) {
-                  return +d[key];
+                  if (+d["ORIGINAL_SCRIPT_WORD_INDEX"] >= scriptStart &&
+                      +d["ORIGINAL_SCRIPT_WORD_INDEX"] < scriptEnd) {
+                        return +d[key];
+                      }
+                  else {
+                    return null;
+                  }
                 }
+
                 var dim = table.dimension(match);
                 var top = dim.top(3);
                 // console.log(top);
-                return top[0]['POSITIVE_MATCH'];
+                return top[0][key];
             };
 
             var filterAxis = function(table, key, sub) {
@@ -481,28 +488,31 @@ Jedi
               // number of intensity levels
               var intensityLevels = 5;
 
-             //find max number of positive matches
-             var maxMatch = sortAxis (cfTable, "POSITIVE_MATCH");
-
              //highlight selected section
               var currentSpan = document.getElementById('script-section-' + d.data.key);
               currentSpan.scrollIntoView();
               currentSpan.setAttribute('class','script-sections highlight');
 
               d3.csv('data.csv', function(data) {
+                //find max number of positive matches
                  var binSize = document.getElementById('sliderWidget').value;
                  var scriptSection = d.data.key;
                  var totalWords = data [(data.length-1)]["ORIGINAL_SCRIPT_WORD_INDEX"];
                  var searchEnd;
                  var matches = []; //to account for multiple words highlighted in one section
+                 var searchStart = scriptSection*binSize;
                  if (((scriptSection + 1)*binSize)>totalWords) {
                    searchEnd = totalWords;
                  }
                  else {
                    searchEnd = (scriptSection + 1)*binSize;
                  }
+                 console.log(searchStart);
+                 console.log(searchEnd);
+                 var maxMatch = sortAxis (cfTable, "POSITIVE_MATCH", searchStart, searchEnd);
+                 console.log(maxMatch);
 
-                 for (var j = (scriptSection*binSize); j < searchEnd; j++) {
+                 for (var j = searchStart; j < searchEnd; j++) {
                    for (var m = 1; m <= intensityLevels; m++) {
                      if (data [j] ["POSITIVE_MATCH"] <= m*maxMatch/intensityLevels
                          && data [j] ["POSITIVE_MATCH"] >= (m-1)*maxMatch/intensityLevels) {
@@ -512,7 +522,7 @@ Jedi
                    }
                  };
 
-                 for (var k = (scriptSection*binSize); k < searchEnd; k++) {
+                 for (var k = searchStart; k < searchEnd; k++) {
                    if (data [k] ["LOWERCASE"] == textBox.value) {
                      var wordIndex = data [k] ["ORIGINAL_SCRIPT_WORD_INDEX"];
                      matches.push(wordIndex);
