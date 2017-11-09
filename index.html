@@ -419,6 +419,7 @@ Jedi
                 chart.dimension(dim);
                 return dim;
             }
+            //find max of section selected
             var sortAxis = function(table, key, scriptStart, scriptEnd) {
                 var match = function (d) {
                   if (+d["ORIGINAL_SCRIPT_WORD_INDEX"] >= scriptStart &&
@@ -431,10 +432,20 @@ Jedi
                 }
 
                 var dim = table.dimension(match);
+                dim.dispose();
                 var top = dim.top(3);
                 // console.log(top);
                 return top[0][key];
             };
+            // find max of script
+            // var sortAxis = function(table, key) {
+            //     var match = function (d) {
+            //       return +d[key];
+            //     }
+            //     var dim = table.dimension(match);
+            //     var top = dim.top(3);
+            //     return top[0][key];
+            // }
 
             var filterAxis = function(table, key, sub) {
                 var match = function (d) {
@@ -507,8 +518,6 @@ Jedi
                  else {
                    searchEnd = (scriptSection + 1)*binSize;
                  }
-                 console.log(searchStart);
-                 console.log(searchEnd);
                  var maxMatch = sortAxis (cfTable, "POSITIVE_MATCH", searchStart, searchEnd);
                  console.log(maxMatch);
 
@@ -582,19 +591,7 @@ Jedi
             var setDependentAxis = function (textBox, table, indepDim, chart, sel) {
               textBox.addEventListener("keypress", function(e) {
                 if (e.keyCode == 13) {
-                    if (this.value == "") {
-                      var searchTerms = this.value;
-                      // console.log(searchTerms);
-                      filterAxis(cfTable, "LOWERCASE", searchTerms);
-                      dependentAxis(
-                          indepDim,
-                          chart,
-                          sel.options[sel.selectedIndex].value, //value in dropdown
-                          searchTerms //value in textbox
-                      );
-                    }
-                    else {
-                      var searchTerms = this.value.toLowerCase();
+                      var searchTerms = textBox.value.toLowerCase();
                       searchTerms = searchTerms.replace(/^[ \t]+|[ \t]+$/, '');
                       // filterAxis(cfTable, selFilter.options[selFilter.selectedIndex].value, searchTerms);
                       filterAxis(cfTable, "LOWERCASE", searchTerms);
@@ -605,7 +602,7 @@ Jedi
                           sel.options[sel.selectedIndex].value, //value in dropdown
                           searchTerms //value in textbox
                       );
-                    }
+                    // indepDim.dispose();
                   }
               });
             }
@@ -627,19 +624,7 @@ Jedi
             // setDependentAxis(textBox, cfTable, indepDim2, chart2, sel2);
             textBox.addEventListener("keypress", function(e) {
               if (e.keyCode == 13) {
-                  if (this.value == "") {
-                    var searchTerms = this.value;
-                    // console.log(searchTerms);
-                    filterAxis(cfTable, "LOWERCASE", searchTerms);
-                    dependentAxis(
-                        indepDim2,
-                        chart2,
-                        sel2.options[sel2.selectedIndex].value, //value in dropdown
-                        searchTerms //value in textbox
-                    );
-                  }
-                  else {
-                    var searchTerms = this.value.toLowerCase();
+                    var searchTerms = textBox.value.toLowerCase();
                     searchTerms = searchTerms.replace(/^[ \t]+|[ \t]+$/, '');
                     filterAxis(cfTable, "LOWERCASE", searchTerms);
                     // console.log(searchTerms);
@@ -649,7 +634,7 @@ Jedi
                         sel2.options[sel2.selectedIndex].value, //value in dropdown
                         searchTerms //value in textbox
                     );
-                  }
+                  // indepDim2.dispose();
                 }
             });
 
@@ -706,6 +691,8 @@ Jedi
             // end chart 2
 
             // FOR BOTH CHARTS
+            //weird edge case: if filter by search term, adjust slider, then search something different,
+            //filter does not reset
             slideWidget.oninput = function () {
                 //remove script section highlighting from previous bin size
                 removeHighlights();
@@ -716,31 +703,60 @@ Jedi
 
                 //remake plots with new bin size
                 indepDim = independentAxis(cfTable, chart, "ORIGINAL_SCRIPT_WORD_INDEX", slideWidget.value);
-                if (textBox.value == '') {
-                    dependentAxis(indepDim, chart, sel.options[sel.selectedIndex].value, textBox.value);
-                }
-                else {
-                    filterAxis(cfTable, "LOWERCASE", textBox.value);
-                    dependentAxis(indepDim, chart, sel.options[sel.selectedIndex].value, textBox.value);
-                }
-                // setDependentAxis(textBox, cfTable, indepDim, chart, sel);
+
+                var searchTerms = textBox.value.toLowerCase();
+                searchTerms = searchTerms.replace(/^[ \t]+|[ \t]+$/, '');
+                filterAxis(cfTable, "LOWERCASE", searchTerms);
+                dependentAxis(indepDim, chart, sel.options[sel.selectedIndex].value, searchTerms);
+
+                // indepDim.dispose(); //get rid of the dimension b/c of 32 dim max
+
+                textBox.addEventListener("keypress", function(e) {
+                  if (e.keyCode == 13) {
+                    console.log("event listener");
+                    var searchTerms = textBox.value.toLowerCase();
+                    searchTerms = searchTerms.replace(/^[ \t]+|[ \t]+$/, '');
+                    filterAxis(cfTable, "LOWERCASE", searchTerms);
+                    dependentAxis(indepDim, chart, sel.options[sel.selectedIndex].value, searchTerms);
+                    // setDependentAxis(textBox, cfTable, indepDim, chart, sel);
+                  }
+                })
+
+                // if (textBox.value == '') {
+                //     filterAxis(cfTable, "LOWERCASE", textBox.value);
+                //     dependentAxis(indepDim, chart, sel.options[sel.selectedIndex].value, textBox.value);
+                //     // indepDim.dispose();
+                // }
+                // else {
+                //     filterAxis(cfTable, "LOWERCASE", textBox.value);
+                //     dependentAxis(indepDim, chart, sel.options[sel.selectedIndex].value, textBox.value);
+                //     // indepDim.dispose();
+                // }
 
 
-                indepDim.dispose(); //get rid of the dimension b/c of 32 dim max
 
                 indepDim2 = independentAxis(cfTable, chart2, "ORIGINAL_SCRIPT_WORD_INDEX", slideWidget.value);
                 // setDependentAxis(textBox, cfTable, indepDim2, chart2, sel2);
-                if (textBox.value == '') {
-                    dependentAxis(indepDim2, chart2, sel2.options[sel2.selectedIndex].value, textBox.value);
-                }
-                else {
-                    filterAxis(cfTable, "LOWERCASE", textBox.value);
-                    dependentAxis(indepDim2, chart2, sel2.options[sel2.selectedIndex].value, textBox.value);
-                }
+                var searchTerms = textBox.value.toLowerCase();
+                searchTerms = searchTerms.replace(/^[ \t]+|[ \t]+$/, '');
+                filterAxis(cfTable, "LOWERCASE", searchTerms);
+                dependentAxis(indepDim2, chart2, sel2.options[sel2.selectedIndex].value, searchTerms);
+
+                textBox.addEventListener("keypress", function(e) {
+                  if (e.keyCode == 13) {
+                    var searchTerms = textBox.value.toLowerCase();
+                    searchTerms = searchTerms.replace(/^[ \t]+|[ \t]+$/, '');
+                    filterAxis(cfTable, "LOWERCASE", searchTerms);
+                    dependentAxis(indepDim2, chart2, sel2.options[sel2.selectedIndex].value, searchTerms);
+                    // setDependentAxis(textBox, cfTable, indepDim2, chart2, sel2);
+                  }
+                })
                 // dependentAxis(indepDim2, chart2, sel2.options[sel2.selectedIndex].value);
                 // filterAxis(cfTable, "LOWERCASE", textBox.value);
                 // dependentAxis(indepDim2, chart, sel2.options[sel2.selectedIndex].value, textBox.value);
-                indepDim2.dispose();
+                // indepDim2.dispose();
+                // setDependentAxis(textBox, cfTable, indepDim, chart, sel);
+                // setDependentAxis(textBox, cfTable, indepDim2, chart2, sel2);
                 makeChart(chart2);
 
                 var selection = this.value;
