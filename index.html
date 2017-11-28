@@ -73,6 +73,10 @@
             font-weight: bold;
         }
 
+        .match.intensity-default {
+            background-color: rgba(255, 255, 255, 1);
+        }
+
         .match.intensity-0 {
             background-color: rgba(16, 96, 255, 0.1);
         }
@@ -226,7 +230,6 @@ Stormtroopers
 Stormtrooper
 Jedi
 Jakku
-Star Wars
 Kelvin
 Teedo
 Hux
@@ -338,7 +341,7 @@ Jedi
 
             label.innerHTML = " 0 matches";
             box.id = "box-" + k;
-            box.className = "box match intensity-" + k;
+            box.className = "box match intensity-default";
 
             boxContainer.appendChild(box);
             boxContainer.appendChild(label);
@@ -357,7 +360,7 @@ Jedi
 
                 //for script formatting
                 var punctuation  = [',', '.', '!', '?', '\''];
-                var endpunctuation =  ['.', '!', '?'];
+                var endpunctuation =  ['.', '!', '?', '"', '...', '....', '--'];
                 var contractions = ['\'ve', '\'m', '\'ll', '\'re', '\'s', '\'t', 'n\'t', 'na'];
                 var capitals = ['i'];
                 var namesString = document.getElementById('characters').innerText;
@@ -473,8 +476,8 @@ Jedi
             //find max of section selected
             var sortAxis = function(table, key, scriptStart, scriptEnd) {
                 var match = function (d) {
-                  if (+d["ORIGINAL_SCRIPT_WORD_INDEX"] >= scriptStart &&
-                      +d["ORIGINAL_SCRIPT_WORD_INDEX"] < scriptEnd) {
+                  if (+d["ORIGINAL_SCRIPT_WORD_INDEX"] > scriptStart &&
+                      +d["ORIGINAL_SCRIPT_WORD_INDEX"] <= scriptEnd) {
                         return +d[key];
                       }
                   else {
@@ -512,6 +515,7 @@ Jedi
                   dim.filter(function(d) { return d === sub; });
                 }
             }
+
             var dependentAxis = function(dim, chart, key, sub) {
                 // sub = sub || "";
                 var group;
@@ -533,7 +537,14 @@ Jedi
                     var label = document.getElementById('lb-' + (k-1));
                     var box = document.getElementById('box-' + (k-1));
 
-                    label.innerHTML = " " + Math.floor((k-1)*maxMatch/intensityLevels) + '-' + Math.floor(k*maxMatch/intensityLevels) + ' matches';
+                    if (k == 1 || Math.floor((k-1)*maxMatch/intensityLevels) == Math.floor(k*maxMatch/intensityLevels)) {
+                        label.innerHTML = " " + Math.floor((k-1)*maxMatch/intensityLevels) + '-'
+                        + Math.floor(k*maxMatch/intensityLevels) + ' matches';
+                    }
+                    else {
+                        label.innerHTML = " " + ((Math.floor((k-1)*maxMatch/intensityLevels))+1)
+                        + '-' + Math.floor(k*maxMatch/intensityLevels) + ' matches';
+                    }
                     box.className = "box match intensity-" + (k-1);
                     boxContainer.appendChild(box);
                     boxContainer.appendChild(label);
@@ -586,20 +597,12 @@ Jedi
                  var maxMatch = sortAxis (cfTable, "POSITIVE_MATCH", searchStart, searchEnd);
                  console.log(maxMatch);
 
-
-
-                 // for (var n = 1; n <= intensityLevels; n++) {
-                 //   var bDiv = document.getElementById('match-' + (n-1));
-                 //   bDiv.textContent= ((n-1)*maxMatch/intensityLevels + '-'
-                 //   + (n*maxMatch/intensityLevels + ' matches'));
-                 // }
-
                  updateLegend(maxMatch);
 
                  for (var j = searchStart; j < searchEnd; j++) {
                    for (var m = 1; m <= intensityLevels; m++) {
-                     if (data [j] ["POSITIVE_MATCH"] < Math.floor(m*maxMatch/intensityLevels)
-                         && data [j] ["POSITIVE_MATCH"] >= Math.floor((m-1)*maxMatch/intensityLevels)) {
+                     if (data [j] ["POSITIVE_MATCH"] <= Math.floor(m*maxMatch/intensityLevels)
+                         && data [j] ["POSITIVE_MATCH"] > Math.floor((m-1)*maxMatch/intensityLevels)) {
                        var wordSpan = document.getElementById('word-' + data [j] ["ORIGINAL_SCRIPT_WORD_INDEX"]);
                        wordSpan.setAttribute('class','match intensity-' + (m-1));
                      }
@@ -640,7 +643,10 @@ Jedi
             var keys = Object.keys(rawTable[0]);
             var sel = document.createElement("select");
             document.getElementById("dependent-selector").appendChild(sel);
-            var ignoreKeyList = ["ORIGINAL_SCRIPT_WORD", "SPACY_ORTH_ID", "ORIGINAL_SCRIPT_WORD_INDEX", "LOWERCASE"];
+            var ignoreKeyList = ["ORIGINAL_SCRIPT_WORD", "SPACY_ORTH_ID", "ORIGINAL_SCRIPT_WORD_INDEX", "LOWERCASE",
+                                "POSITIVE_MATCH_05", "POSITIVE_MATCH_1", "POSITIVE_MATCH_15", "POSITIVE_MATCH_2",
+                                "POSITIVE_MATCH_25", "POSITIVE_MATCH_3", "POSITIVE_MATCH_35", "POSITIVE_MATCH_4",
+                                "POSITIVE_MATCH_45", "POSITIVE_MATCH_5"];
             for (var k = 0; k < keys.length; k++) {
                 var key = keys[k];
                 if (!(ignoreKeyList.includes(key))) {
@@ -687,16 +693,22 @@ Jedi
             var sel2 = document.createElement("select");
             sel2.id = 'select2';
             document.getElementById("dependent-selector-2").appendChild(sel2);
+            var ignoreKeyList = ["ORIGINAL_SCRIPT_WORD", "SPACY_ORTH_ID", "ORIGINAL_SCRIPT_WORD_INDEX", "LOWERCASE",
+                                "POSITIVE_MATCH_05", "POSITIVE_MATCH_1", "POSITIVE_MATCH_15", "POSITIVE_MATCH_2",
+                                "POSITIVE_MATCH_25", "POSITIVE_MATCH_3", "POSITIVE_MATCH_35", "POSITIVE_MATCH_4",
+                                "POSITIVE_MATCH_45", "POSITIVE_MATCH_5"];
             for (var k = 0; k < keys.length; k++) {
                 var key = keys[k];
-                sel2.options[sel2.options.length] = new Option(key, key);
+                if (!(ignoreKeyList.includes(key))) {
+                  sel2.options[sel2.options.length] = new Option(key, key);
+                };
             }
-            sel2.options[1].selected = true;
+            sel2.options[0].selected = true;
             sel2.addEventListener("change", function() {
                 dependentAxis(indepDim2, chart2, this.value);
                 makeChart(chart2);
             });
-            // setDependentAxis(textBox, cfTable, indepDim2, chart2, sel2);
+
             textBox.addEventListener("keypress", function(e) {
               if (e.keyCode == 13) {
                     var searchTerms = textBox.value.toLowerCase();
@@ -709,7 +721,7 @@ Jedi
                         sel2.options[sel2.selectedIndex].value, //value in dropdown
                         searchTerms //value in textbox
                     );
-                  // indepDim2.dispose();
+
                 }
             });
 
@@ -789,7 +801,6 @@ Jedi
 
                 textBox.addEventListener("keypress", function(e) {
                   if (e.keyCode == 13) {
-                    console.log("event listener");
                     indepDim = independentAxis(cfTable, chart, "ORIGINAL_SCRIPT_WORD_INDEX", slideWidget.value);
                     var searchTerms = textBox.value.toLowerCase();
                     searchTerms = searchTerms.replace(/^[ \t]+|[ \t]+$/, '');
