@@ -106,6 +106,25 @@
           height: 20px;
         }
 
+        #left {
+          width: 75%;
+          height: 100%;
+          float: left;
+        }
+
+        #right {
+          font-size: 0.9em;
+        }
+
+        .box {
+          display: inline-block;
+          width: 10px;
+          height: 10px;
+          /*margin: 2px;*/
+          border: 1px solid rgba(0, 0, 0, .2);
+        }
+
+
         #chart-switch {
             margin-left: 8px;
             vertical-align: top;
@@ -131,6 +150,10 @@
 
         #input {
             margin-left: 5px;
+        }
+
+        #output {
+            min-width: 12em;
         }
 
         #slider {
@@ -238,6 +261,7 @@ Jedi
     <div id="main-chart"></div>
     <div id="chart2"></div>
     <div id="filter">
+      <div id = "left">
         <div id="dependent-selector">Dependent Variable 1:   </div>
         <div id="toggle">
             <span id="dependent-selector-2">Dependent Variable 2:   </span>
@@ -249,11 +273,19 @@ Jedi
             <span id="output"></span>
             <span id="input"></span>
         </div>
+      </div>
+      <div id = "right">
+        <!-- <div class="box match intensity-0" id="box-0"></div><div id='match-0'>0 matches</div>
+        <div class="box match intensity-1" id="box-1"></div><div id='match-1'>0 matches</div>
+        <div class="box match intensity-2" id="box-2"></div><div id='match-2'>0 matches</div>
+        <div class="box match intensity-3" id="box-3"></div><div id='match-3'>0 matches</div>
+        <div class="box match intensity-4" id="box-4"></div><div id='match-4'>0 matches</div> -->
+      </div>
     </div>
     <div id="fanwork"></div>
 
     <script>
-
+        var intensityLevels = 5;
         //make slider widget for binsize - default 250 word script secitons
         var slideWidget = document.createElement('input');
         slideWidget.id = 'sliderWidget';
@@ -294,6 +326,25 @@ Jedi
                 document.getElementById('dependent-selector-2').classList.remove('grey');
             }
         });
+
+        //create legend with default 0 matches
+        var right = document.getElementById('right');
+        for (var k = 0; k < intensityLevels; k++) {
+            var boxContainer = document.createElement("div");
+            boxContainer.id = "bc-" + k;
+            var box = document.createElement("div");
+            var label = document.createElement("span");
+            label.id = "lb-" + k;
+
+            label.innerHTML = " 0 matches";
+            box.id = "box-" + k;
+            box.className = "box match intensity-" + k;
+
+            boxContainer.appendChild(box);
+            boxContainer.appendChild(label);
+
+            right.appendChild(boxContainer);
+       }
 
         //function to render the script
         var renderScript = function () {
@@ -474,8 +525,24 @@ Jedi
                 chart.render();
             }
 
+            var updateLegend = function(maxMatch) {
+                var right = document.getElementById('right');
+
+                for (var k = 1; k <= intensityLevels; k++) {
+                    var boxContainer = document.getElementById('bc-' + (k-1));
+                    var label = document.getElementById('lb-' + (k-1));
+                    var box = document.getElementById('box-' + (k-1));
+
+                    label.innerHTML = " " + Math.floor((k-1)*maxMatch/intensityLevels) + '-' + Math.floor(k*maxMatch/intensityLevels) + ' matches';
+                    box.className = "box match intensity-" + (k-1);
+                    boxContainer.appendChild(box);
+                    boxContainer.appendChild(label);
+
+                    right.appendChild(boxContainer);
+               }
+            }
+
             var removeHighlights = function () {
-              var intensityLevels = 5;
               //remove previous highlights
               var sectionHs = document.getElementsByClassName('script-sections highlight');
               for (var b = 0; b < sectionHs.length; b) {
@@ -496,8 +563,6 @@ Jedi
             }
 
             var addHighlights = function (table, d) {
-              // number of intensity levels
-              var intensityLevels = 5;
 
              //highlight selected section
               var currentSpan = document.getElementById('script-section-' + d.data.key);
@@ -521,10 +586,20 @@ Jedi
                  var maxMatch = sortAxis (cfTable, "POSITIVE_MATCH", searchStart, searchEnd);
                  console.log(maxMatch);
 
+
+
+                 // for (var n = 1; n <= intensityLevels; n++) {
+                 //   var bDiv = document.getElementById('match-' + (n-1));
+                 //   bDiv.textContent= ((n-1)*maxMatch/intensityLevels + '-'
+                 //   + (n*maxMatch/intensityLevels + ' matches'));
+                 // }
+
+                 updateLegend(maxMatch);
+
                  for (var j = searchStart; j < searchEnd; j++) {
                    for (var m = 1; m <= intensityLevels; m++) {
-                     if (data [j] ["POSITIVE_MATCH"] <= m*maxMatch/intensityLevels
-                         && data [j] ["POSITIVE_MATCH"] >= (m-1)*maxMatch/intensityLevels) {
+                     if (data [j] ["POSITIVE_MATCH"] < Math.floor(m*maxMatch/intensityLevels)
+                         && data [j] ["POSITIVE_MATCH"] >= Math.floor((m-1)*maxMatch/intensityLevels)) {
                        var wordSpan = document.getElementById('word-' + data [j] ["ORIGINAL_SCRIPT_WORD_INDEX"]);
                        wordSpan.setAttribute('class','match intensity-' + (m-1));
                      }
@@ -692,7 +767,8 @@ Jedi
 
             // FOR BOTH CHARTS
             //weird edge case: if filter by search term, adjust slider, then search something different,
-            //filter does not reset
+            //filter does not reset -- probably have to reset dim
+
             slideWidget.oninput = function () {
                 //remove script section highlighting from previous bin size
                 removeHighlights();
@@ -709,16 +785,18 @@ Jedi
                 filterAxis(cfTable, "LOWERCASE", searchTerms);
                 dependentAxis(indepDim, chart, sel.options[sel.selectedIndex].value, searchTerms);
 
-                // indepDim.dispose(); //get rid of the dimension b/c of 32 dim max
+                indepDim.dispose();
 
                 textBox.addEventListener("keypress", function(e) {
                   if (e.keyCode == 13) {
                     console.log("event listener");
+                    indepDim = independentAxis(cfTable, chart, "ORIGINAL_SCRIPT_WORD_INDEX", slideWidget.value);
                     var searchTerms = textBox.value.toLowerCase();
                     searchTerms = searchTerms.replace(/^[ \t]+|[ \t]+$/, '');
                     filterAxis(cfTable, "LOWERCASE", searchTerms);
                     dependentAxis(indepDim, chart, sel.options[sel.selectedIndex].value, searchTerms);
                     // setDependentAxis(textBox, cfTable, indepDim, chart, sel);
+                    indepDim.dispose();
                   }
                 })
 
@@ -732,8 +810,6 @@ Jedi
                 //     dependentAxis(indepDim, chart, sel.options[sel.selectedIndex].value, textBox.value);
                 //     // indepDim.dispose();
                 // }
-
-
 
                 indepDim2 = independentAxis(cfTable, chart2, "ORIGINAL_SCRIPT_WORD_INDEX", slideWidget.value);
                 // setDependentAxis(textBox, cfTable, indepDim2, chart2, sel2);
