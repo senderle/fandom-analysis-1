@@ -38,6 +38,12 @@
             max-height: 45%;
         }
 
+        #left {
+          width: 75%;
+          height: 100%;
+          float: left;
+        }
+
         #filter {
             float: left;
             position: absolute;
@@ -63,13 +69,24 @@
             overflow-y: scroll;
         }
 
+        /* colored box for match legend */
+        .box {
+          display: inline-block;
+          width: 10px;
+          height: 10px;
+          /*margin: 2px;*/
+          border: 1px solid rgba(0, 0, 0, .2);
+        }
         .grey {
             color: graytext;
             font-style: italic;
         }
 
+        .hide {
+            visibility: hidden;
+        }
+
         .highlight {
-            /*background-color: rgba(16, 96, 255, .5);*/
             font-weight: bold;
         }
 
@@ -92,14 +109,8 @@
         .match.intensity-4 {
             background-color: rgba(16, 96, 255, 0.9);
         }
-
         .selected {
-            /*background-color: rgba(224, 0, 0, 0.45);*/
             background-color: rgba(255, 80, 25, .6);
-            /* color: rgba(0, 0, 0, 1.0); */
-        }
-        .hide {
-            visibility: hidden;
         }
 
         /* The switch - the box around the slider */
@@ -109,25 +120,6 @@
           width: 32px;
           height: 20px;
         }
-
-        #left {
-          width: 75%;
-          height: 100%;
-          float: left;
-        }
-
-        #right {
-          font-size: 0.9em;
-        }
-
-        .box {
-          display: inline-block;
-          width: 10px;
-          height: 10px;
-          /*margin: 2px;*/
-          border: 1px solid rgba(0, 0, 0, .2);
-        }
-
 
         #chart-switch {
             margin-left: 8px;
@@ -288,6 +280,7 @@ Jedi
     <div id="fanwork"></div>
 
     <script>
+        // levels of highlighting
         var intensityLevels = 5;
         //make slider widget for binsize - default 250 word script secitons
         var slideWidget = document.createElement('input');
@@ -330,7 +323,7 @@ Jedi
             }
         });
 
-        //create legend with default 0 matches
+        //create match legend with default 0 matches
         var right = document.getElementById('right');
         for (var k = 0; k < intensityLevels; k++) {
             var boxContainer = document.createElement("div");
@@ -354,9 +347,8 @@ Jedi
             d3.csv('data.csv', function(data) {
                 var binSize = document.getElementById('sliderWidget').value;
                 var wordCount =  data [(data.length-1)]["ORIGINAL_SCRIPT_WORD_INDEX"];
-                //var sectionCount = data [(data.length-1)]["SCRIPT_SECTION"];
                 var sectionCount = Math.floor(wordCount/binSize) + 1;
-                    var sectionedScript = document.getElementById('script');
+                var sectionedScript = document.getElementById('script');
 
                 //for script formatting
                 var punctuation  = [',', '.', '!', '?', '\''];
@@ -368,16 +360,16 @@ Jedi
 
                 for (var i = 0; i < sectionCount + 1; i++) {
                     var sectionSpan = document.createElement('span');
-                    sectionSpan.setAttribute('class', 'script-sections');
-                    sectionSpan.setAttribute('id', 'script-section-' + i);
+                    sectionSpan.className = 'script-sections';
+                    sectionSpan.id = 'script-section-' + i;
                     sectionedScript.append(sectionSpan);
                 }
 
                 for (var j = 0; j < wordCount; j++) {
                    var selectedWord = data [j]["ORIGINAL_SCRIPT_WORD"];
                    var wordSpan = document.createElement('span');
-                   wordSpan.setAttribute('class', 'words');
-                   wordSpan.setAttribute('id', 'word-' + j);
+                   wordSpan.className = 'words';
+                   wordSpan.id = 'word-' + j;
                    //test for empty words
                    if (selectedWord == '') {
                        selectedWord = data [j]["LOWERCASE"];
@@ -473,6 +465,20 @@ Jedi
                 chart.dimension(dim);
                 return dim;
             }
+
+            var dependentAxis = function(dim, chart, key, sub) {
+                // sub = sub || "";
+                var group;
+                // if (likelyNumeric (rawTable, key)) {
+                    group = reduceOnKey(dim, key);
+
+                var all = group.all().map(sumAccessor);
+                // var all = group.all().map(meanAccessor);
+                chart.y(d3.scale.linear().domain([0, d3.max(all)]));
+                chart.yAxisLabel(key).group(group);
+                chart.render();
+            }
+
             //find max of section selected
             var sortAxis = function(table, key, scriptStart, scriptEnd) {
                 var match = function (d) {
@@ -491,6 +497,7 @@ Jedi
                 // console.log(top);
                 return top[0][key];
             };
+
             // find max of script
             // var sortAxis = function(table, key) {
             //     var match = function (d) {
@@ -501,6 +508,7 @@ Jedi
             //     return top[0][key];
             // }
 
+            //filter to find word entered in search box
             var filterAxis = function(table, key, sub) {
                 var match = function (d) {
                   return d[key];
@@ -516,19 +524,6 @@ Jedi
                 }
             }
 
-            var dependentAxis = function(dim, chart, key, sub) {
-                // sub = sub || "";
-                var group;
-                // if (likelyNumeric (rawTable, key)) {
-                    group = reduceOnKey(dim, key);
-
-                var all = group.all().map(sumAccessor);
-                // var all = group.all().map(meanAccessor);
-                chart.y(d3.scale.linear().domain([0, d3.max(all)]));
-                chart.yAxisLabel(key).group(group);
-                chart.render();
-            }
-
             var updateLegend = function(maxMatch) {
                 var right = document.getElementById('right');
 
@@ -536,15 +531,16 @@ Jedi
                     var boxContainer = document.getElementById('bc-' + (k-1));
                     var label = document.getElementById('lb-' + (k-1));
                     var box = document.getElementById('box-' + (k-1));
+                    var matchStart = Math.floor((k-1)*maxMatch/intensityLevels);
+                    var matchEnd = Math.floor(k*maxMatch/intensityLevels);
 
-                    if (k == 1 || Math.floor((k-1)*maxMatch/intensityLevels) == Math.floor(k*maxMatch/intensityLevels)) {
-                        label.innerHTML = " " + Math.floor((k-1)*maxMatch/intensityLevels) + '-'
-                        + Math.floor(k*maxMatch/intensityLevels) + ' matches';
+                    if (k == 1 || matchStart == matchEnd) {
+                        label.innerHTML = " " + matchStart + '-' + matchEnd + ' matches';
                     }
                     else {
-                        label.innerHTML = " " + ((Math.floor((k-1)*maxMatch/intensityLevels))+1)
-                        + '-' + Math.floor(k*maxMatch/intensityLevels) + ' matches';
+                        label.innerHTML = " " + (matchStart+1) + '-' + matchEnd + ' matches';
                     }
+
                     box.className = "box match intensity-" + (k-1);
                     boxContainer.appendChild(box);
                     boxContainer.appendChild(label);
@@ -568,13 +564,18 @@ Jedi
              for (var i = 0; i < intensityLevels; i++) {
                var intensity = document.getElementsByClassName('match intensity-' + i);
                for (var c = 0; c < intensity.length; c) { //or you can also go backwards
-                 intensity[c].removeAttribute('class', 'match intensity-' + i);
+                 //skip checkboxes
+                 if (intensity[c].className.match(/^box/)) {
+                   c++;
+                 }
+                 else {
+                   intensity[c].removeAttribute('class', 'match intensity-' + i);
+                 }
                }
              }
             }
 
             var addHighlights = function (table, d) {
-
              //highlight selected section
               var currentSpan = document.getElementById('script-section-' + d.data.key);
               currentSpan.scrollIntoView();
@@ -596,19 +597,30 @@ Jedi
                  }
                  var maxMatch = sortAxis (cfTable, "POSITIVE_MATCH", searchStart, searchEnd);
                  console.log(maxMatch);
-
                  updateLegend(maxMatch);
 
+                 //highlighting different intensity levels of matches
                  for (var j = searchStart; j < searchEnd; j++) {
                    for (var m = 1; m <= intensityLevels; m++) {
-                     if (data [j] ["POSITIVE_MATCH"] <= Math.floor(m*maxMatch/intensityLevels)
-                         && data [j] ["POSITIVE_MATCH"] > Math.floor((m-1)*maxMatch/intensityLevels)) {
+                     var matchStart = Math.floor((m-1)*maxMatch/intensityLevels);
+                     var matchEnd = Math.floor(m*maxMatch/intensityLevels);
+                     if (m == 1) {
+                       //include zero matches in search
+                       if (data [j] ["POSITIVE_MATCH"] <= matchEnd
+                           && data [j] ["POSITIVE_MATCH"] >= matchStart) {
+                         var wordSpan = document.getElementById('word-' + data [j] ["ORIGINAL_SCRIPT_WORD_INDEX"]);
+                         wordSpan.className = 'match intensity-' + (m-1);
+                       }
+                     }
+                     else if (data [j] ["POSITIVE_MATCH"] <= matchEnd
+                         && data [j] ["POSITIVE_MATCH"] > matchStart) {
                        var wordSpan = document.getElementById('word-' + data [j] ["ORIGINAL_SCRIPT_WORD_INDEX"]);
-                       wordSpan.setAttribute('class','match intensity-' + (m-1));
+                       wordSpan.className = 'match intensity-' + (m-1);
                      }
                    }
                  };
 
+                 //get and highlight words that match word in search box
                  for (var k = searchStart; k < searchEnd; k++) {
                    if (data [k] ["LOWERCASE"] == textBox.value) {
                      var wordIndex = data [k] ["ORIGINAL_SCRIPT_WORD_INDEX"];
@@ -622,6 +634,7 @@ Jedi
              });
             }
 
+            //create actual chart 1
             chart.margins({top: 50, right: 50, bottom: 50, left: 50})
                  .brushOn(false)
                  .valueAccessor(sumAccessor)
@@ -656,7 +669,6 @@ Jedi
             sel.options[0].selected = true;
             sel.addEventListener("change", function() {
                 dependentAxis(indepDim, chart, this.value);
-                makeChart(chart2);
             });
             // var selFilter = document.createElement("select");
             // selFilter.id = 'selectFilter';
@@ -689,7 +701,45 @@ Jedi
             }
             setDependentAxis(textBox, cfTable, indepDim, chart, sel);
 
-            //chart 2
+            //CHART 2
+            function makeChart(chart) {
+                chart.margins({top: 50, right: 55, bottom: 50, left: 50})
+                    .brushOn(false)
+                    .renderVerticalGridLines(true)
+                    .renderHorizontalGridLines(true)
+                    //.y(d3.scale.linear().domain([0, d3.max(reduceOnKey(indepDim, sel.options[sel.selectedIndex].value).all().map(sumAccessor))]))
+                    .y(d3.scale.linear().domain([0, scaleYAxis()]))
+                    .elasticY(true)
+                    .compose([
+                        dc.lineChart(chart)
+                            .valueAccessor(sumAccessor)
+                            .colors('blue')
+                            .interpolate('monotone')
+                            .renderDataPoints({radius: 3, fillOpacity: 0.8, strokeOpacity: 0.8})
+                            .renderArea(true)
+                            .dashStyle([5,5,5,5])
+                            .group(reduceOnKey(indepDim, sel.options[sel.selectedIndex].value))
+                            .title(function(d){
+                                return d.data.key
+                            }),
+                        dc.lineChart(chart)
+                            .valueAccessor(sumAccessor)
+                            .colors('#D32A3E')
+                            .interpolate('monotone')
+                            .useRightYAxis(true)
+                            .renderDataPoints({radius: 3, fillOpacity: 0.8, strokeOpacity: 0.8})
+                            .group(reduceOnKey(indepDim2, sel2.options[sel2.selectedIndex].value))
+                    ])
+                    .yAxisLabel(sel.options[sel.selectedIndex].value + ' (blue area)')
+                    .rightYAxisLabel(sel2.options[sel2.selectedIndex].value + ' (red line)')
+                    .on("renderlet", function(chart) {
+                        chart.selectAll('circle.dot').on('click.section', function(d) {
+                            removeHighlights();
+                            addHighlights(cfTable, d);
+                        })
+                    })
+                    .render()
+            }
             var sel2 = document.createElement("select");
             sel2.id = 'select2';
             document.getElementById("dependent-selector-2").appendChild(sel2);
@@ -734,53 +784,12 @@ Jedi
             }
 
             var indepDim2 = independentAxis(cfTable, chart2, "ORIGINAL_SCRIPT_WORD_INDEX");
-
-            function makeChart(chart) {
-                chart.margins({top: 50, right: 55, bottom: 50, left: 50})
-                    .brushOn(false)
-                    .renderVerticalGridLines(true)
-                    .renderHorizontalGridLines(true)
-                    //.y(d3.scale.linear().domain([0, d3.max(reduceOnKey(indepDim, sel.options[sel.selectedIndex].value).all().map(sumAccessor))]))
-                    .y(d3.scale.linear().domain([0, scaleYAxis()]))
-                    .elasticY(true)
-                    .compose([
-                        dc.lineChart(chart)
-                            .valueAccessor(sumAccessor)
-                            .colors('blue')
-                            .interpolate('monotone')
-                            .renderDataPoints({radius: 3, fillOpacity: 0.8, strokeOpacity: 0.8})
-                            .renderArea(true)
-                            .dashStyle([5,5,5,5])
-                            .group(reduceOnKey(indepDim, sel.options[sel.selectedIndex].value))
-                            .title(function(d){
-                                return d.data.key
-                            }),
-                        dc.lineChart(chart)
-                            .valueAccessor(sumAccessor)
-                            .colors('#D32A3E')
-                            .interpolate('monotone')
-                            .useRightYAxis(true)
-                            .renderDataPoints({radius: 3, fillOpacity: 0.8, strokeOpacity: 0.8})
-                            .group(reduceOnKey(indepDim2, sel2.options[sel2.selectedIndex].value))
-                    ])
-                    .yAxisLabel(sel.options[sel.selectedIndex].value + ' (blue area)')
-                    .rightYAxisLabel(sel2.options[sel2.selectedIndex].value + ' (red line)')
-                    .on("renderlet", function(chart) {
-                        chart.selectAll('circle.dot').on('click.section', function(d) {
-                            removeHighlights();
-                            addHighlights(cfTable, d);
-                        })
-                    })
-                    .render()
-            }
             makeChart(chart2);
-            //dependentAxis(indepDim2, chart2, keys[1]);
             // end chart 2
 
             // FOR BOTH CHARTS
             //weird edge case: if filter by search term, adjust slider, then search something different,
             //filter does not reset -- probably have to reset dim
-
             slideWidget.oninput = function () {
                 //remove script section highlighting from previous bin size
                 removeHighlights();
@@ -811,17 +820,6 @@ Jedi
                   }
                 })
 
-                // if (textBox.value == '') {
-                //     filterAxis(cfTable, "LOWERCASE", textBox.value);
-                //     dependentAxis(indepDim, chart, sel.options[sel.selectedIndex].value, textBox.value);
-                //     // indepDim.dispose();
-                // }
-                // else {
-                //     filterAxis(cfTable, "LOWERCASE", textBox.value);
-                //     dependentAxis(indepDim, chart, sel.options[sel.selectedIndex].value, textBox.value);
-                //     // indepDim.dispose();
-                // }
-
                 indepDim2 = independentAxis(cfTable, chart2, "ORIGINAL_SCRIPT_WORD_INDEX", slideWidget.value);
                 // setDependentAxis(textBox, cfTable, indepDim2, chart2, sel2);
                 var searchTerms = textBox.value.toLowerCase();
@@ -838,12 +836,7 @@ Jedi
                     // setDependentAxis(textBox, cfTable, indepDim2, chart2, sel2);
                   }
                 })
-                // dependentAxis(indepDim2, chart2, sel2.options[sel2.selectedIndex].value);
-                // filterAxis(cfTable, "LOWERCASE", textBox.value);
-                // dependentAxis(indepDim2, chart, sel2.options[sel2.selectedIndex].value, textBox.value);
-                // indepDim2.dispose();
-                // setDependentAxis(textBox, cfTable, indepDim, chart, sel);
-                // setDependentAxis(textBox, cfTable, indepDim2, chart2, sel2);
+
                 makeChart(chart2);
 
                 var selection = this.value;
@@ -865,8 +858,6 @@ Jedi
             document.getElementById('select2').setAttribute('disabled','disabled');
             document.getElementById('dependent-selector-2').classList.add('grey');
         });
-
-
 
         </script>
     </div> <!-- end content div -->
