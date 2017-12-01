@@ -341,6 +341,7 @@ Jedi
 
             right.appendChild(boxContainer);
        }
+       right.style.visibility = "hidden";
 
         //function to render the script
         var renderScript = function () {
@@ -547,6 +548,7 @@ Jedi
 
                     right.appendChild(boxContainer);
                }
+                right.style.visibility = "visible";
             }
 
             var removeHighlights = function () {
@@ -656,10 +658,10 @@ Jedi
             var keys = Object.keys(rawTable[0]);
             var sel = document.createElement("select");
             document.getElementById("dependent-selector").appendChild(sel);
-            var ignoreKeyList = ["ORIGINAL_SCRIPT_WORD", "SPACY_ORTH_ID", "ORIGINAL_SCRIPT_WORD_INDEX", "LOWERCASE",
-                                "POSITIVE_MATCH_05", "POSITIVE_MATCH_1", "POSITIVE_MATCH_15", "POSITIVE_MATCH_2",
-                                "POSITIVE_MATCH_25", "POSITIVE_MATCH_3", "POSITIVE_MATCH_35", "POSITIVE_MATCH_4",
-                                "POSITIVE_MATCH_45", "POSITIVE_MATCH_5"];
+            var ignoreKeyList = ["ORIGINAL_SCRIPT_WORD", "SPACY_ORTH_ID", "ORIGINAL_SCRIPT_WORD_INDEX", "LOWERCASE"]
+                                // "POSITIVE_MATCH_05", "POSITIVE_MATCH_1", "POSITIVE_MATCH_15", "POSITIVE_MATCH_2",
+                                // "POSITIVE_MATCH_25", "POSITIVE_MATCH_3", "POSITIVE_MATCH_35", "POSITIVE_MATCH_4",
+                                // "POSITIVE_MATCH_45", "POSITIVE_MATCH_5"];
             for (var k = 0; k < keys.length; k++) {
                 var key = keys[k];
                 if (!(ignoreKeyList.includes(key))) {
@@ -669,6 +671,7 @@ Jedi
             sel.options[0].selected = true;
             sel.addEventListener("change", function() {
                 dependentAxis(indepDim, chart, this.value);
+                makeChart(chart2);
             });
             // var selFilter = document.createElement("select");
             // selFilter.id = 'selectFilter';
@@ -688,18 +691,19 @@ Jedi
                       searchTerms = searchTerms.replace(/^[ \t]+|[ \t]+$/, '');
                       // filterAxis(cfTable, selFilter.options[selFilter.selectedIndex].value, searchTerms);
                       filterAxis(cfTable, "LOWERCASE", searchTerms);
-                      // console.log(searchTerms);
                       dependentAxis(
                           indepDim,
                           chart,
                           sel.options[sel.selectedIndex].value, //value in dropdown
                           searchTerms //value in textbox
                       );
-                    // indepDim.dispose();
                   }
               });
             }
             setDependentAxis(textBox, cfTable, indepDim, chart, sel);
+
+
+
 
             //CHART 2
             function makeChart(chart) {
@@ -743,10 +747,10 @@ Jedi
             var sel2 = document.createElement("select");
             sel2.id = 'select2';
             document.getElementById("dependent-selector-2").appendChild(sel2);
-            var ignoreKeyList = ["ORIGINAL_SCRIPT_WORD", "SPACY_ORTH_ID", "ORIGINAL_SCRIPT_WORD_INDEX", "LOWERCASE",
-                                "POSITIVE_MATCH_05", "POSITIVE_MATCH_1", "POSITIVE_MATCH_15", "POSITIVE_MATCH_2",
-                                "POSITIVE_MATCH_25", "POSITIVE_MATCH_3", "POSITIVE_MATCH_35", "POSITIVE_MATCH_4",
-                                "POSITIVE_MATCH_45", "POSITIVE_MATCH_5"];
+            var ignoreKeyList = ["ORIGINAL_SCRIPT_WORD", "SPACY_ORTH_ID", "ORIGINAL_SCRIPT_WORD_INDEX", "LOWERCASE"]
+                                // "POSITIVE_MATCH_05", "POSITIVE_MATCH_1", "POSITIVE_MATCH_15", "POSITIVE_MATCH_2",
+                                // "POSITIVE_MATCH_25", "POSITIVE_MATCH_3", "POSITIVE_MATCH_35", "POSITIVE_MATCH_4",
+                                // "POSITIVE_MATCH_45", "POSITIVE_MATCH_5"];
             for (var k = 0; k < keys.length; k++) {
                 var key = keys[k];
                 if (!(ignoreKeyList.includes(key))) {
