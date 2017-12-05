@@ -127,14 +127,14 @@
         }
 
         #dependent-selector select {
-            width: 200px;        }
-
-        /*#filter-selector select {
             width: 200px;
         }
 
-        #filter-selector,
-        #filter-selector select,*/
+        #text-search input {
+            width: 135px;
+            margin-right: 5px;
+        }
+
         #dependent-selector-2,
         #dependent-selector-2 select {
             vertical-align: top;
@@ -263,18 +263,13 @@ Jedi
             <span id="chart-switch"></span>
         </div>
         <!-- <div id="filter-selector">Filter results by variable:   </div> -->
-        <div id="text-search">Filter results by single value:   </div>
+        <div id="text-search">Filter results:   </div>
         <div id="slider">
             <span id="output"></span>
             <span id="input"></span>
         </div>
       </div>
       <div id = "right">
-        <!-- <div class="box match intensity-0" id="box-0"></div><div id='match-0'>0 matches</div>
-        <div class="box match intensity-1" id="box-1"></div><div id='match-1'>0 matches</div>
-        <div class="box match intensity-2" id="box-2"></div><div id='match-2'>0 matches</div>
-        <div class="box match intensity-3" id="box-3"></div><div id='match-3'>0 matches</div>
-        <div class="box match intensity-4" id="box-4"></div><div id='match-4'>0 matches</div> -->
       </div>
     </div>
     <div id="fanwork"></div>
@@ -468,10 +463,8 @@ Jedi
             }
 
             var dependentAxis = function(dim, chart, key, sub) {
-                // sub = sub || "";
                 var group;
-                // if (likelyNumeric (rawTable, key)) {
-                    group = reduceOnKey(dim, key);
+                group = reduceOnKey(dim, key);
 
                 var all = group.all().map(sumAccessor);
                 // var all = group.all().map(meanAccessor);
@@ -521,7 +514,8 @@ Jedi
                   dim.filter(function(d) { return d; });
                 }
                 else {
-                  dim.filter(function(d) { return d === sub; });
+                  dim.filter(function(d) {
+                    return d.toLowerCase() === sub; });
                 }
             }
 
@@ -643,7 +637,6 @@ Jedi
                 //  .valueAccessor(meanAccessor)
                  .gap(0.2)
                  .ordinalColors(['rgba(0,0,255,.5)'])
-                 //.colors(rgba(0,0,255,0.3))
                  .renderVerticalGridLines(true)
                  .renderHorizontalGridLines(true)
                  .on("renderlet.chart", function(chart) {
@@ -658,10 +651,7 @@ Jedi
             var keys = Object.keys(rawTable[0]);
             var sel = document.createElement("select");
             document.getElementById("dependent-selector").appendChild(sel);
-            var ignoreKeyList = ["ORIGINAL_SCRIPT_WORD", "SPACY_ORTH_ID", "ORIGINAL_SCRIPT_WORD_INDEX", "LOWERCASE"]
-                                // "POSITIVE_MATCH_05", "POSITIVE_MATCH_1", "POSITIVE_MATCH_15", "POSITIVE_MATCH_2",
-                                // "POSITIVE_MATCH_25", "POSITIVE_MATCH_3", "POSITIVE_MATCH_35", "POSITIVE_MATCH_4",
-                                // "POSITIVE_MATCH_45", "POSITIVE_MATCH_5"];
+            var ignoreKeyList = ["ORIGINAL_SCRIPT_WORD", "SPACY_ORTH_ID", "ORIGINAL_SCRIPT_WORD_INDEX", "LOWERCASE"];
             for (var k = 0; k < keys.length; k++) {
                 var key = keys[k];
                 if (!(ignoreKeyList.includes(key))) {
@@ -673,24 +663,32 @@ Jedi
                 dependentAxis(indepDim, chart, this.value);
                 makeChart(chart2);
             });
-            // var selFilter = document.createElement("select");
-            // selFilter.id = 'selectFilter';
-            // document.getElementById("filter-selector").appendChild(selFilter);
-            // for (var k = 0; k < keys.length; k++) {
-            //     var key = keys[k];
-            //     selFilter.options[selFilter.options.length] = new Option(key, key);
-            // }
-            // selFilter.options[1].selected = true;
 
+            //select variable to filter by
             var textBox = document.createElement("input");
+            var filterSel = document.createElement("select");
             document.getElementById("text-search").appendChild(textBox);
+            document.getElementById("text-search").appendChild(filterSel);
+            var ignoreKeyFilterList = ["ORIGINAL_SCRIPT_WORD", "SPACY_ORTH_ID", "ORIGINAL_SCRIPT_WORD_INDEX"];
+            for (var k = 0; k < keys.length; k++) {
+                var key = keys[k];
+                if (!(ignoreKeyFilterList.includes(key))) {
+                  filterSel.options[filterSel.options.length] = new Option(key, key);
+                };
+            }
+            filterSel.options[11].selected = true;
+
+            filterSel.addEventListener("change", function() {
+                setDependentAxis(textBox, cfTable, indepDim, chart, sel);
+                makeChart(chart2);
+            });
+
             var setDependentAxis = function (textBox, table, indepDim, chart, sel) {
               textBox.addEventListener("keypress", function(e) {
                 if (e.keyCode == 13) {
                       var searchTerms = textBox.value.toLowerCase();
                       searchTerms = searchTerms.replace(/^[ \t]+|[ \t]+$/, '');
-                      // filterAxis(cfTable, selFilter.options[selFilter.selectedIndex].value, searchTerms);
-                      filterAxis(cfTable, "LOWERCASE", searchTerms);
+                      filterAxis(cfTable, filterSel.options[filterSel.selectedIndex].value, searchTerms);
                       dependentAxis(
                           indepDim,
                           chart,
@@ -701,9 +699,6 @@ Jedi
               });
             }
             setDependentAxis(textBox, cfTable, indepDim, chart, sel);
-
-
-
 
             //CHART 2
             function makeChart(chart) {
@@ -747,10 +742,7 @@ Jedi
             var sel2 = document.createElement("select");
             sel2.id = 'select2';
             document.getElementById("dependent-selector-2").appendChild(sel2);
-            var ignoreKeyList = ["ORIGINAL_SCRIPT_WORD", "SPACY_ORTH_ID", "ORIGINAL_SCRIPT_WORD_INDEX", "LOWERCASE"]
-                                // "POSITIVE_MATCH_05", "POSITIVE_MATCH_1", "POSITIVE_MATCH_15", "POSITIVE_MATCH_2",
-                                // "POSITIVE_MATCH_25", "POSITIVE_MATCH_3", "POSITIVE_MATCH_35", "POSITIVE_MATCH_4",
-                                // "POSITIVE_MATCH_45", "POSITIVE_MATCH_5"];
+            var ignoreKeyList = ["ORIGINAL_SCRIPT_WORD", "SPACY_ORTH_ID", "ORIGINAL_SCRIPT_WORD_INDEX", "LOWERCASE"];
             for (var k = 0; k < keys.length; k++) {
                 var key = keys[k];
                 if (!(ignoreKeyList.includes(key))) {
@@ -767,8 +759,7 @@ Jedi
               if (e.keyCode == 13) {
                     var searchTerms = textBox.value.toLowerCase();
                     searchTerms = searchTerms.replace(/^[ \t]+|[ \t]+$/, '');
-                    filterAxis(cfTable, "LOWERCASE", searchTerms);
-                    // console.log(searchTerms);
+                    filterAxis(cfTable, filterSel.options[filterSel.selectedIndex].value, searchTerms);
                     dependentAxis(
                         indepDim2,
                         chart2,
@@ -807,7 +798,7 @@ Jedi
 
                 var searchTerms = textBox.value.toLowerCase();
                 searchTerms = searchTerms.replace(/^[ \t]+|[ \t]+$/, '');
-                filterAxis(cfTable, "LOWERCASE", searchTerms);
+                filterAxis(cfTable, filterSel.options[filterSel.selectedIndex].value, searchTerms);
                 dependentAxis(indepDim, chart, sel.options[sel.selectedIndex].value, searchTerms);
 
                 indepDim.dispose();
@@ -817,7 +808,7 @@ Jedi
                     indepDim = independentAxis(cfTable, chart, "ORIGINAL_SCRIPT_WORD_INDEX", slideWidget.value);
                     var searchTerms = textBox.value.toLowerCase();
                     searchTerms = searchTerms.replace(/^[ \t]+|[ \t]+$/, '');
-                    filterAxis(cfTable, "LOWERCASE", searchTerms);
+                    filterAxis(cfTable, filterSel.options[filterSel.selectedIndex].value, searchTerms);
                     dependentAxis(indepDim, chart, sel.options[sel.selectedIndex].value, searchTerms);
                     // setDependentAxis(textBox, cfTable, indepDim, chart, sel);
                     indepDim.dispose();
@@ -828,14 +819,14 @@ Jedi
                 // setDependentAxis(textBox, cfTable, indepDim2, chart2, sel2);
                 var searchTerms = textBox.value.toLowerCase();
                 searchTerms = searchTerms.replace(/^[ \t]+|[ \t]+$/, '');
-                filterAxis(cfTable, "LOWERCASE", searchTerms);
+                filterAxis(cfTable, filterSel.options[filterSel.selectedIndex].value, searchTerms);
                 dependentAxis(indepDim2, chart2, sel2.options[sel2.selectedIndex].value, searchTerms);
 
                 textBox.addEventListener("keypress", function(e) {
                   if (e.keyCode == 13) {
                     var searchTerms = textBox.value.toLowerCase();
                     searchTerms = searchTerms.replace(/^[ \t]+|[ \t]+$/, '');
-                    filterAxis(cfTable, "LOWERCASE", searchTerms);
+                    filterAxis(cfTable, filterSel.options[filterSel.selectedIndex].value, searchTerms);
                     dependentAxis(indepDim2, chart2, sel2.options[sel2.selectedIndex].value, searchTerms);
                     // setDependentAxis(textBox, cfTable, indepDim2, chart2, sel2);
                   }
