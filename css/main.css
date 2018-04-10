@@ -1,0 +1,189 @@
+#content, html, body {
+    height: 98vh;
+}
+
+#script {
+    float: left;
+    width: 49%;
+    height: 100%;
+    overflow-y: scroll;
+}
+#fixed-right-pane {
+    position: fixed;
+    top: 0px;
+    left: 50%;
+    height: 75%;
+    margin: 15px;
+    border-radius: 3px;
+}
+#relative-right-pane {
+    position: relative;
+    margin: auto;
+    min-height: 400px;
+    width: 90%;
+}
+#main-chart, #secondary-chart {
+    height: 100%;
+    min-height: 400px;
+    width: 100%;
+    margin: auto;
+}
+#main-chart.hide,
+#secondary-chart.hide {
+    height: 0px;
+    min-height: 0px;
+    margin: 0px;
+}
+#chart-control {
+    width: 90%;
+    float: left;
+}
+
+#chart-control td {
+    vertical-align: middle;
+}
+
+#script-legend {
+    position: fixed;
+    bottom: 3px;
+    right: 51%;
+    font-size: 80%;
+    width: 160px;
+    float: right;
+    padding: 15px;
+    border: solid 1px;
+    border-radius: 3px;
+    background-color: rgba(255, 255, 255, 1.0);
+}
+
+#fanwork {
+    right: 0;
+    bottom: 0;
+    width: 50%;
+    height: 32%;
+    overflow-y: scroll;
+}
+
+/* colored box for match legend */
+.box {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  /*margin: 2px;*/
+  border: 1px solid rgba(0, 0, 0, .2);
+}
+.grey {
+    color: graytext;
+    font-style: italic;
+}
+
+.hide {
+    visibility: hidden;
+}
+
+.highlight {
+    font-weight: bold;
+}
+
+.match.intensity-default {
+    background-color: rgba(255, 255, 255, 1);
+}
+
+.match.intensity-0 {
+    background-color: rgba(16, 96, 255, 0.1);
+}
+.match.intensity-1 {
+    background-color: rgba(16, 96, 255, 0.3);
+}
+.match.intensity-2 {
+    background-color: rgba(16, 96, 255, 0.5);
+}
+.match.intensity-3 {
+    background-color: rgba(16, 96, 255, 0.7);
+}
+.match.intensity-4 {
+    background-color: rgba(16, 96, 255, 0.9);
+}
+.selected {
+    background-color: rgba(255, 80, 25, .6);
+}
+
+/* The switch - the box around the slider */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 32px;
+  height: 15px;
+}
+
+#chart-switch {
+    margin-left: 8px;
+}
+
+#dependent-selector select {
+    width: 200px;
+}
+
+#text-search input {
+    width: 135px;
+    margin-right: 5px;
+}
+
+#dependent-selector-2,
+#dependent-selector-2 select {
+}
+
+#dependent-selector-2 select {
+    width: 200px;
+}
+
+#input {
+    margin-left: 5px;
+}
+
+#output {
+    min-width: 12em;
+}
+
+#slider {
+    display: flex;
+    align-items: center;
+}
+
+.switch input {display:none;}
+
+/*slider styles*/
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 1px;
+  left: 0px;
+  right: 0px;
+  bottom: -6px;
+  background-color: rgba(0,0,0,0.2);
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 12px;
+  width: 12px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+input:checked + .slider {
+  background-color: #2196F3;
+}
+input:focus + .slider {
+  box-shadow: 0 0 1px #2196F3;
+}
+input:checked + .slider:before {
+  -webkit-transform: translateX(12px);
+  -ms-transform: translateX(12px);
+  transform: translateX(12px);
+}
