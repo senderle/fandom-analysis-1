@@ -61,6 +61,41 @@
     
     makeLegend(document.getElementById('script-legend'));
 
+    var makeDependentSelectorDropdown = function(parentElement, selId, keys) {
+        var sel = document.createElement('select');
+        sel.setAttribute('id', selId);
+        parentElement.appendChild(sel);
+
+        var ignoreKeyList = ["ORIGINAL_SCRIPT_WORD", "SPACY_ORTH_ID", "ORIGINAL_SCRIPT_WORD_INDEX", "LOWERCASE"];
+        for (var k = 0; k < keys.length; k++) {
+            var key = keys[k];
+            if (!(ignoreKeyList.includes(key))) {
+                sel.options[sel.options.length] = new Option(key, key);
+            };
+        }
+
+        sel.options[0].selected = true;
+        return sel;
+    }
+
+    var makeFilter = function(parentElement, textBox, keys) {
+        //select variable to filter by
+        var filterSel = document.createElement("select");
+        parentElement.appendChild(textBox);
+        parentElement.appendChild(document.createTextNode("\u00a0"));  // Insert non-breaking space
+        parentElement.appendChild(filterSel);
+        var ignoreKeyFilterList = ["ORIGINAL_SCRIPT_WORD", "SPACY_ORTH_ID", "ORIGINAL_SCRIPT_WORD_INDEX"];
+        for (var k = 0; k < keys.length; k++) {
+            var key = keys[k];
+            if (!(ignoreKeyFilterList.includes(key))) {
+                filterSel.options[filterSel.options.length] = new Option(key, key);
+            };
+        }
+        filterSel.options[11].selected = true;
+
+        return filterSel;
+    }
+
     //function to render the script
     var renderScript = function () {
         d3.queue()
@@ -122,16 +157,77 @@
             });
     }
 
-    //check if values are numbers
-    var likelyNumeric = function(table, key) {
-        //map function takes array and produces another array containing callback results
-        var samples = table.map(function(d) { return +d[key]; });
-        for (var i = 0; i < samples.length; i++) {
-            if (isNaN(samples[i])) {
-                return false;
+    var removeHighlights = function () {
+        //remove previous highlights
+        var sectionHs = document.getElementsByClassName('script-sections highlight');
+        for (var b = 0; b < sectionHs.length; b) {
+            sectionHs[b].removeAttribute('class', 'script-sections highlight');
+        }
+
+        var wordHs = document.getElementsByClassName('words selected');
+        for (var a = 0; a < wordHs.length; a) {
+            wordHs[a].removeAttribute('class', 'words selected');
+        }
+
+        for (var i = 0; i < INTENSITYLEVELS; i++) {
+            var intensity = document.getElementsByClassName('match intensity-' + i);
+            for (var c = 0; c < intensity.length; c) { //or you can also go backwards
+                //skip checkboxes
+                if (intensity[c].className.match(/^box/)) {
+                    c++;
+                }
+                else {
+                    intensity[c].removeAttribute('class', 'match intensity-' + i);
+                }
             }
         }
-        return true;
+    }
+
+    var addHighlights = function(rawTable, cfTable, d) {
+        //highlight selected section
+        var currentSpan = document.getElementById('script-section-' + d.data.key);
+        currentSpan.scrollIntoView();
+        currentSpan.setAttribute('class','script-sections highlight');
+
+        //find max number of positive matches
+        var binSize = document.getElementById('slider-widget').value;
+        var scriptSection = d.data.key;
+        var totalWords = getTotalWords(rawTable);
+        var searchEnd;
+        var matches = []; //to account for multiple words highlighted in one section
+        var searchStart = scriptSection * binSize;
+        if (((scriptSection + 1) * binSize) > totalWords) {
+            searchEnd = totalWords;
+        }
+        else {
+            searchEnd = (scriptSection + 1) * binSize;
+        }
+
+        var sel = document.getElementById("dependent-selector-dropdown");
+        var selvalue = sel[sel.selectedIndex].value;
+        var maxMatch = sortAxis(cfTable, selvalue, searchStart, searchEnd);
+        updateLegend(maxMatch);
+
+        //highlighting different intensity levels of matches
+        for (var j = searchStart; j < searchEnd; j++) {
+            for (var m = 1; m <= INTENSITYLEVELS; m++) {
+                var matchStart = Math.floor((m-1)*maxMatch/INTENSITYLEVELS);
+                var matchEnd = Math.floor(m*maxMatch/INTENSITYLEVELS);
+                if (m == 1) {
+                    //include zero matches in search
+                    if (rawTable [j] [selvalue] <= matchEnd
+                        && rawTable [j] [selvalue] >= matchStart) {
+                        var wordSpan = document.getElementById('word-' + rawTable [j] ["ORIGINAL_SCRIPT_WORD_INDEX"]);
+                        wordSpan.className = 'match intensity-' + (m-1);
+                    }
+                }
+                else if (rawTable [j] [selvalue] <= matchEnd
+                    && rawTable [j] [selvalue] > matchStart) {
+                    var wordSpan = document.getElementById('word-' + rawTable [j] ["ORIGINAL_SCRIPT_WORD_INDEX"]);
+                    wordSpan.className = 'match intensity-' + (m-1);
+                }
+            }
+        };
     }
 
     var reduceOnKey = function(dim, key) {
@@ -173,8 +269,12 @@
     };
 
     var accessor = {
-        'meanAccessor': function(d) { return d.value.sum / d.value.count; },
-        'geometricMeanAccessor': function(d) { return Math.exp(d.value.logsum / d.value.count); },
+        'meanAccessor': function(d) { 
+            return d.value.count ? d.value.sum / d.value.count : 0; 
+        },
+        'geometricMeanAccessor': function(d) { 
+            return Math.exp(d.value.count ? d.value.logsum / d.value.count : -1); 
+        },
         'countAccessor': function(d) { return d.value.count; }, 
         'sumAccessor': function(d) { return d.value.sum; },
         'select': function(selection) {
@@ -182,42 +282,43 @@
             this.selected = this[selection];
         },
         'toggle': function() {
-            if (this.selectedKey === 'sumAccessor') {
+            if (this.selectedKey === 'meanAccessor') {
                 this.select('geometricMeanAccessor');
             } else {
-                this.select('sumAccessor');
+                this.select('meanAccessor');
             }
         }
     }
-    accessor.select('sumAccessor');
+    accessor.select('meanAccessor');
 
-    var independentAxis = function(table, chart, key, bin) {
-        bin = bin || 250;
+    var independentAxis = function(cfTable, chart, binsize, nBins) {
+        var key = "ORIGINAL_SCRIPT_WORD_INDEX";
 
         var modifyAxis = function(d) {
-            return Math.floor(+d[key] / bin);
+            return Math.floor(+d[key] / binsize);
         }
-        var dim = table.dimension(modifyAxis);
-        var hi = modifyAxis(dim.top(1)[0])+1;
-        // var hi = modifyAxis(dim.top(1)[0]);
-        var lo = modifyAxis(dim.bottom(1)[0]);
-        chart.x(d3.scale.linear().domain([lo, hi]));
+
+        var lo = 0;
+        var hi = nBins;
+        
+        var dim = cfTable.dimension(modifyAxis);
+        chart.x(d3.scale.linear().domain([0, hi]));
         chart.xAxisLabel('Script Section');
-        //chart.xAxisLabel(key);
         chart.xAxis().tickFormat(d3.format("d"));
         chart.dimension(dim);
         return dim;
     }
 
-    var dependentAxis = function(dim, chart, key, sub) {
-        var group;
-        group = reduceOnKey(dim, key);
+    var independentAxisBar = function(cfTable, chart, totalWords, binsize) {
+        binsize = binsize || 250;
+        var nBins = Math.floor((totalWords - 1) / binsize) + 1;
+        return independentAxis(cfTable, chart, binsize, nBins);
+    }
 
-        var all = group.all().map(accessor.selected);
-        chart.y(d3.scale.linear().domain([0, d3.max(all)]));
-        chart.yAxisLabel(key).group(group);
-        chart.valueAccessor(accessor.selected);
-        chart.render();
+    var independentAxisLine = function(cfTable, chart, totalWords, binsize) {
+        binsize = binsize || 250;
+        var nBins = Math.floor((totalWords - 1) / binsize);
+        return independentAxis(cfTable, chart, binsize, nBins);
     }
 
     //find max of section selected
@@ -252,7 +353,8 @@
         }
         else {
             dim.filter(function(d) {
-                return d.toLowerCase() === sub; });
+                return d.toLowerCase() === sub; 
+            });
         }
     }
 
@@ -282,161 +384,69 @@
         legend.style.visibility = "visible";
     }
 
-    var removeHighlights = function () {
-        //remove previous highlights
-        var sectionHs = document.getElementsByClassName('script-sections highlight');
-        for (var b = 0; b < sectionHs.length; b) {
-            sectionHs[b].removeAttribute('class', 'script-sections highlight');
-        }
-
-        var wordHs = document.getElementsByClassName('words selected');
-        for (var a = 0; a < wordHs.length; a) {
-            wordHs[a].removeAttribute('class', 'words selected');
-        }
-
-        for (var i = 0; i < INTENSITYLEVELS; i++) {
-            var intensity = document.getElementsByClassName('match intensity-' + i);
-            for (var c = 0; c < intensity.length; c) { //or you can also go backwards
-                //skip checkboxes
-                if (intensity[c].className.match(/^box/)) {
-                    c++;
-                }
-                else {
-                    intensity[c].removeAttribute('class', 'match intensity-' + i);
-                }
-            }
-        }
-    }
-
-    var addHighlights = function(rawTable, cfTable, d) {
-        //highlight selected section
-        var currentSpan = document.getElementById('script-section-' + d.data.key);
-        currentSpan.scrollIntoView();
-        currentSpan.setAttribute('class','script-sections highlight');
-
-        //find max number of positive matches
-        var binSize = document.getElementById('slider-widget').value;
-        var scriptSection = d.data.key;
-        var totalWords = rawTable[(rawTable.length - 1)]["ORIGINAL_SCRIPT_WORD_INDEX"];
-        var searchEnd;
-        var matches = []; //to account for multiple words highlighted in one section
-        var searchStart = scriptSection * binSize;
-        if (((scriptSection + 1) * binSize) > totalWords) {
-            searchEnd = totalWords;
-        }
-        else {
-            searchEnd = (scriptSection + 1) * binSize;
-        }
-
-        var sel = document.getElementById("dependent-selector-dropdown");
-        var selvalue = sel[sel.selectedIndex].value;
-        var maxMatch = sortAxis(cfTable, selvalue, searchStart, searchEnd);
-        updateLegend(maxMatch);
-
-        //highlighting different intensity levels of matches
-        for (var j = searchStart; j < searchEnd; j++) {
-            for (var m = 1; m <= INTENSITYLEVELS; m++) {
-                var matchStart = Math.floor((m-1)*maxMatch/INTENSITYLEVELS);
-                var matchEnd = Math.floor(m*maxMatch/INTENSITYLEVELS);
-                if (m == 1) {
-                    //include zero matches in search
-                    if (rawTable [j] [selvalue] <= matchEnd
-                        && rawTable [j] [selvalue] >= matchStart) {
-                        var wordSpan = document.getElementById('word-' + rawTable [j] ["ORIGINAL_SCRIPT_WORD_INDEX"]);
-                        wordSpan.className = 'match intensity-' + (m-1);
-                    }
-                }
-                else if (rawTable [j] [selvalue] <= matchEnd
-                    && rawTable [j] [selvalue] > matchStart) {
-                    var wordSpan = document.getElementById('word-' + rawTable [j] ["ORIGINAL_SCRIPT_WORD_INDEX"]);
-                    wordSpan.className = 'match intensity-' + (m-1);
-                }
-            }
-        };
-
-        //get and highlight words that match word in search box
-        var textBox = document.getElementById('filter-text-box');
-        for (var k = searchStart; k < searchEnd; k++) {
-            if (rawTable [k] ["LOWERCASE"] == textBox.value) {
-                var wordIndex = rawTable [k] ["ORIGINAL_SCRIPT_WORD_INDEX"];
-                matches.push(wordIndex);
-            }
-        }
-        for (var k = 0; k< matches.length; k++) {
-            var currentWordSpan = document.getElementById('word-' + matches[k]);
-            currentWordSpan.setAttribute('class','words selected');
-        }
-    }
-
-    var setDependentAxis = function (textBox, cfTable, indepDim, chart, sel, filterSel) {
-        textBox.addEventListener("keypress", function(e) {
-            if (e.keyCode == 13) {
-                var searchTerms = textBox.value.toLowerCase();
-                searchTerms = searchTerms.replace(/^[ \t]+|[ \t]+$/, '');
-                filterAxis(cfTable, filterSel.options[filterSel.selectedIndex].value, searchTerms);
-                dependentAxis(
-                    indepDim,
-                    chart,
-                    sel.options[sel.selectedIndex].value, //value in dropdown
-                    searchTerms //value in textbox
-                );
-            }
-        });
-    }
-
-    var configureMainChart = function(chart, rawTable, cfTable) {
+    var configureMainChart = function(chart, indepDim, sel, rawTable, cfTable) {
         chart.margins({top: 50, right: 50, bottom: 50, left: 50})
             .brushOn(false)
-            .valueAccessor(accessor.selected)
-            .gap(0.2)
-            .ordinalColors(['rgba(0,0,255,.5)'])
             .renderVerticalGridLines(true)
             .renderHorizontalGridLines(true)
+            .gap(0.2)
+            .elasticY(true)
+            .valueAccessor(accessor.selected)
+            .ordinalColors(['rgba(0,0,255,.5)'])
+            .group(reduceOnKey(indepDim, sel.options[sel.selectedIndex].value))
+            .yAxisLabel(sel.options[sel.selectedIndex].value)
             .on("renderlet.chart", function(chart) {
                 chart.selectAll('rect').on('click', function(d) {
                     removeHighlights();
                     addHighlights(rawTable, cfTable, d);
                 });
-            });
+            })
+            .render();
+    }
+
+    var configureSecondaryChart = function(chart, indepDim, indepDim2, sel, sel2, rawTable, cfTable) {
+        chart.margins({top: 50, right: 55, bottom: 50, left: 50})
+            .brushOn(false)
+            .renderVerticalGridLines(true)
+            .renderHorizontalGridLines(true)
+            .elasticY(true)
+            .compose([
+                dc.lineChart(chart)
+                .valueAccessor(accessor.selected)
+                .colors('blue')
+                .interpolate('monotone')
+                .renderDataPoints({radius: 3, fillOpacity: 0.8, strokeOpacity: 0.8})
+                .renderArea(true)
+                .dashStyle([5,5,5,5])
+                .group(reduceOnKey(indepDim, sel.options[sel.selectedIndex].value))
+                .title(function(d){
+                    return d.data.key
+                }),
+                dc.lineChart(chart)
+                .valueAccessor(accessor.selected)
+                .colors('#D32A3E')
+                .interpolate('monotone')
+                .useRightYAxis(true)
+                .renderDataPoints({radius: 3, fillOpacity: 0.8, strokeOpacity: 0.8})
+                .group(reduceOnKey(indepDim2, sel2.options[sel2.selectedIndex].value))
+            ])
+            .yAxisLabel(sel.options[sel.selectedIndex].value + ' (blue area)')
+            .rightYAxisLabel(sel2.options[sel2.selectedIndex].value + ' (red line)')
+            .on("renderlet", function(chart) {
+                chart.selectAll('circle.dot').on('click.section', function(d) {
+                    removeHighlights();
+                    addHighlights(rawTable, cfTable, d);
+                })
+            })
+            .render()
     }
 
     var getKeys = function(rawTable) {
         return Object.keys(rawTable[0]);
     }
 
-    var makeDependentSelectorDropdown = function(parentElement, selId, keys) {
-        var sel = document.createElement('select');
-        sel.setAttribute('id', selId);
-        parentElement.appendChild(sel);
-
-        var ignoreKeyList = ["ORIGINAL_SCRIPT_WORD", "SPACY_ORTH_ID", "ORIGINAL_SCRIPT_WORD_INDEX", "LOWERCASE"];
-        for (var k = 0; k < keys.length; k++) {
-            var key = keys[k];
-            if (!(ignoreKeyList.includes(key))) {
-                sel.options[sel.options.length] = new Option(key, key);
-            };
-        }
-
-        sel.options[0].selected = true;
-        return sel;
-    }
-
-    var makeFilter = function(parentElement, textBox, keys) {
-        //select variable to filter by
-        var filterSel = document.createElement("select");
-        parentElement.appendChild(textBox);
-        parentElement.appendChild(document.createTextNode("\u00a0"));  // Insert non-breaking space
-        parentElement.appendChild(filterSel);
-        var ignoreKeyFilterList = ["ORIGINAL_SCRIPT_WORD", "SPACY_ORTH_ID", "ORIGINAL_SCRIPT_WORD_INDEX"];
-        for (var k = 0; k < keys.length; k++) {
-            var key = keys[k];
-            if (!(ignoreKeyFilterList.includes(key))) {
-                filterSel.options[filterSel.options.length] = new Option(key, key);
-            };
-        }
-        filterSel.options[11].selected = true;
-
-        return filterSel;
+    var getTotalWords = function(rawTable) {
+        return rawTable[(rawTable.length - 1)]["ORIGINAL_SCRIPT_WORD_INDEX"];
     }
 
     //normal bar graph is the default view
@@ -444,12 +454,8 @@
     var chart2 = dc.compositeChart("#secondary-chart");
     d3.csv("data/data.csv", function(error, rawTable) {
         var cfTable = crossfilter(rawTable);
-        configureMainChart(chart, rawTable, cfTable);
-        var indepDim = independentAxis(cfTable, chart, "ORIGINAL_SCRIPT_WORD_INDEX");
-
-        ///////////// TODO: find all FUNCTION DEF sections below and refactor
-        //                  then refactor more
-        //                  and some more
+        var indepDim = independentAxisBar(cfTable, chart, getTotalWords(rawTable));
+        var indepDim2 = independentAxisLine(cfTable, chart2, getTotalWords(rawTable));
 
         var sel = makeDependentSelectorDropdown(
             document.getElementById("dependent-selector"), 
@@ -457,8 +463,8 @@
             getKeys(rawTable)
         );
         sel.addEventListener('change', function() {
-            dependentAxis(indepDim, chart, this.value);
-            configureSecondaryChart(chart2);
+            configureMainChart(chart, indepDim, sel, rawTable, cfTable);
+            configureSecondaryChart(chart2, indepDim, indepDim2, sel, sel2, rawTable, cfTable);
         });
 
         var sel2 = makeDependentSelectorDropdown(
@@ -467,77 +473,32 @@
             getKeys(rawTable)
         );
         sel2.addEventListener("change", function() {
-            dependentAxis(indepDim2, chart2, this.value);
-            configureSecondaryChart(chart2);
+            configureMainChart(chart, indepDim, sel, rawTable, cfTable);
+            configureSecondaryChart(chart2, indepDim, indepDim2, sel, sel2, rawTable, cfTable);
         });
+
+        configureMainChart(chart, indepDim, sel, rawTable, cfTable);
+        configureSecondaryChart(chart2, indepDim, indepDim2, sel, sel2, rawTable, cfTable);
 
         var textBox = document.createElement("input");
         textBox.setAttribute('id', 'filter-text-box');
-        var filterSel = makeFilter(document.getElementById("text-search"), textBox, getKeys(rawTable));
-        filterSel.addEventListener("change", function() {
-            setDependentAxis(textBox, cfTable, indepDim, chart, sel, filterSel);
-            configureSecondaryChart(chart2);
-        });
-
-        setDependentAxis(textBox, cfTable, indepDim, chart, sel, filterSel);
-
-        ////////////////// FUNCTION DEF //////////////////
-        //CHART 2
-        var configureSecondaryChart = function(chart) {
-            chart.margins({top: 50, right: 55, bottom: 50, left: 50})
-                .brushOn(false)
-                .renderVerticalGridLines(true)
-                .renderHorizontalGridLines(true)
-                .elasticY(true)
-                .compose([
-                    dc.lineChart(chart)
-                    .valueAccessor(accessor.selected)
-                    .colors('blue')
-                    .interpolate('monotone')
-                    .renderDataPoints({radius: 3, fillOpacity: 0.8, strokeOpacity: 0.8})
-                    .renderArea(true)
-                    .dashStyle([5,5,5,5])
-                    .group(reduceOnKey(indepDim, sel.options[sel.selectedIndex].value))
-                    .title(function(d){
-                        return d.data.key
-                    }),
-                    dc.lineChart(chart)
-                    .valueAccessor(accessor.selected)
-                    .colors('#D32A3E')
-                    .interpolate('monotone')
-                    .useRightYAxis(true)
-                    .renderDataPoints({radius: 3, fillOpacity: 0.8, strokeOpacity: 0.8})
-                    .group(reduceOnKey(indepDim2, sel2.options[sel2.selectedIndex].value))
-                ])
-                .yAxisLabel(sel.options[sel.selectedIndex].value + ' (blue area)')
-                .rightYAxisLabel(sel2.options[sel2.selectedIndex].value + ' (red line)')
-                .on("renderlet", function(chart) {
-                    chart.selectAll('circle.dot').on('click.section', function(d) {
-                        removeHighlights();
-                        addHighlights(rawTable, cfTable, d);
-                    })
-                })
-                .render()
-        }
-
-        var indepDim2 = independentAxis(cfTable, chart2, "ORIGINAL_SCRIPT_WORD_INDEX");
-        configureSecondaryChart(chart2);
-        // end chart 2
-
-        document.getElementById('filter-text-box').addEventListener("keypress", function(e) {
+        textBox.addEventListener("keypress", function(e) {
             if (e.keyCode == 13) {
                 var searchTerms = this.value.toLowerCase();
                 searchTerms = searchTerms.replace(/^[ \t]+|[ \t]+$/, '');
                 filterAxis(cfTable, filterSel.options[filterSel.selectedIndex].value, searchTerms);
-                dependentAxis(
-                    indepDim2,
-                    chart2,
-                    sel2.options[sel2.selectedIndex].value, //value in dropdown
-                    searchTerms //value in textbox
-                );
-
+                configureMainChart(chart, indepDim, sel, rawTable, cfTable);
+                configureSecondaryChart(chart2, indepDim, indepDim2, sel, sel2, rawTable, cfTable);
             }
         });
+
+        var filterSel = makeFilter(document.getElementById("text-search"), textBox, getKeys(rawTable));
+        filterSel.addEventListener("change", function() {
+            configureMainChart(chart, indepDim, sel, rawTable, cfTable);
+            configureSecondaryChart(chart2, indepDim, indepDim2, sel, sel2, rawTable, cfTable);
+        });
+
+        // end chart 2
 
         // FOR BOTH CHARTS
         //weird edge case: if filter by search term, adjust slider, then search something different,
@@ -545,81 +506,35 @@
         var slideWidgetAddInputListener = function(slideWidget) {
             var textBox = document.getElementById('filter-text-box');
             slideWidget.oninput = function () {
-                //remove script section highlighting from previous bin size
-                removeHighlights();
-
                 //print current slider value
                 var out = document.getElementById('slider-output');
                 out.innerHTML = 'Words per script section: ' + this.value;
 
-                //remake plots with new bin size
-                //
-                //// TODO: REFACTOR! This repeats a tremendous amount of code...
-
-                indepDim = independentAxis(cfTable, chart, "ORIGINAL_SCRIPT_WORD_INDEX", slideWidget.value);
-
-                var searchTerms = textBox.value.toLowerCase();
-                searchTerms = searchTerms.replace(/^[ \t]+|[ \t]+$/, '');
-                filterAxis(cfTable, filterSel.options[filterSel.selectedIndex].value, searchTerms);
-                dependentAxis(indepDim, chart, sel.options[sel.selectedIndex].value, searchTerms);
-
-                indepDim.dispose();
-
-                // Does something very similar to setDependentAxis... refactor?
-                textBox.addEventListener("keypress", function(e) {
-                    if (e.keyCode == 13) {
-                        indepDim = independentAxis(cfTable, chart, "ORIGINAL_SCRIPT_WORD_INDEX", slideWidget.value);
-
-                        var searchTerms = textBox.value.toLowerCase();
-                        searchTerms = searchTerms.replace(/^[ \t]+|[ \t]+$/, '');
-                        filterAxis(cfTable, filterSel.options[filterSel.selectedIndex].value, searchTerms);
-                        dependentAxis(indepDim, chart, sel.options[sel.selectedIndex].value, searchTerms);
-
+                var callback = function (binsize) {
+                    if (binsize === slideWidget.value) {
+                        //remove script section highlighting from previous bin size
+                        removeHighlights();
+                        
                         indepDim.dispose();
-                    }
-                })
-
-                indepDim2 = independentAxis(cfTable, chart2, "ORIGINAL_SCRIPT_WORD_INDEX", slideWidget.value);
-
-                var searchTerms = textBox.value.toLowerCase();
-                searchTerms = searchTerms.replace(/^[ \t]+|[ \t]+$/, '');
-                filterAxis(cfTable, filterSel.options[filterSel.selectedIndex].value, searchTerms);
-                dependentAxis(indepDim2, chart2, sel2.options[sel2.selectedIndex].value, searchTerms);
-
-                indepDim2.dispose();
-
-                // Does something very similar to setDependentAxis... refactor?
-                textBox.addEventListener("keypress", function(e) {
-                    if (e.keyCode == 13) {
-                        indepDim = independentAxis(cfTable, chart2, "ORIGINAL_SCRIPT_WORD_INDEX", slideWidget.value);
-
-                        var searchTerms = textBox.value.toLowerCase();
-                        searchTerms = searchTerms.replace(/^[ \t]+|[ \t]+$/, '');
-                        filterAxis(cfTable, filterSel.options[filterSel.selectedIndex].value, searchTerms);
-                        dependentAxis(indepDim2, chart2, sel2.options[sel2.selectedIndex].value, searchTerms);
-
                         indepDim2.dispose();
-                    }
-                })
+                        indepDim = independentAxisBar(cfTable, chart, getTotalWords(rawTable), binsize);
+                        indepDim2 = independentAxisLine(cfTable, chart2, getTotalWords(rawTable), binsize);
 
-                configureSecondaryChart(chart2);
+                        configureMainChart(chart, indepDim, sel, rawTable, cfTable);
+                        configureSecondaryChart(chart2, indepDim, indepDim2, sel, sel2, rawTable, cfTable);
 
-                var selection = this.value;
-                var callback = function (val) {
-                    if (val == slideWidget.value) {
                         document.getElementById('script').innerHTML = ''; //remove previous version of scriont
                         renderScript(); //rewrite script with new bin size/script section sizes
                     }
                 }
+
+                var selection = this.value;
                 setTimeout(callback, 1000, selection);
             }
         }
 
         slideWidgetAddInputListener(document.getElementById('slider-widget'));
 
-        //render charts; 1 is positive match as y-axis
-        dependentAxis(indepDim, chart, getKeys(rawTable)[1]);
-        //dependentAxis(indepDim2, chart2, keys[1]);
         renderScript();
 
         document.getElementById('smoothing-switch').addEventListener('change', function() {
@@ -627,8 +542,8 @@
             var selector2 = document.getElementById('dependent-selector-2-dropdown');
             
             accessor.toggle();
-            dependentAxis(indepDim, chart, selector[selector.selectedIndex].value);
-            configureSecondaryChart(chart2);
+            configureMainChart(chart, indepDim, sel, rawTable, cfTable);
+            configureSecondaryChart(chart2, indepDim, indepDim2, sel, sel2, rawTable, cfTable);
         });
 
         //event listener for switch to show/hide single/double bar graph
@@ -643,15 +558,15 @@
                 main.classList.remove('hide');
                 document.getElementById('dependent-selector-2').setAttribute('disabled','disabled');
                 selector2.classList.add('grey');
-                dependentAxis(indepDim, chart, selector[selector.selectedIndex].value);
-                configureSecondaryChart(chart2);
+                configureMainChart(chart, indepDim, sel, rawTable, cfTable);
+                configureSecondaryChart(chart2, indepDim, indepDim2, sel, sel2, rawTable, cfTable);
             } else {                               //from main to 2nd
                 main.classList.add('hide');
                 alt.classList.remove('hide');
                 document.getElementById('dependent-selector-2').removeAttribute('disabled');
                 selector2.classList.remove('grey');
-                dependentAxis(indepDim, chart, selector[selector.selectedIndex].value);
-                configureSecondaryChart(chart2);
+                configureMainChart(chart, indepDim, sel, rawTable, cfTable);
+                configureSecondaryChart(chart2, indepDim, indepDim2, sel, sel2, rawTable, cfTable);
             }
         });
 
