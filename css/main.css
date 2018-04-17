@@ -93,17 +93,33 @@
     background-color: rgba(16, 96, 255, 0.1);
 }
 .match.intensity-1 {
-    background-color: rgba(16, 96, 255, 0.3);
+    background-color: rgba(16, 96, 255, 0.2);
 }
 .match.intensity-2 {
-    background-color: rgba(16, 96, 255, 0.5);
+    background-color: rgba(16, 96, 255, 0.3);
 }
 .match.intensity-3 {
-    background-color: rgba(16, 96, 255, 0.7);
+    background-color: rgba(16, 96, 255, 0.4);
 }
 .match.intensity-4 {
+    background-color: rgba(16, 96, 255, 0.5);
+}
+.match.intensity-5 {
+    background-color: rgba(16, 96, 255, 0.6);
+}
+.match.intensity-6 {
+    background-color: rgba(16, 96, 255, 0.7);
+}
+.match.intensity-7 {
+    background-color: rgba(16, 96, 255, 0.8);
+}
+.match.intensity-8 {
     background-color: rgba(16, 96, 255, 0.9);
 }
+.match.intensity-9 {
+    background-color: rgba(16, 96, 255, 1.0);
+}
+
 .selected {
     background-color: rgba(255, 80, 25, .6);
 }
@@ -137,11 +153,11 @@
     width: 200px;
 }
 
-#input {
+#slider-input {
     margin-left: 5px;
 }
 
-#output {
+#slider-output {
     min-width: 12em;
 }
 
