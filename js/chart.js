@@ -98,10 +98,11 @@
 
     //function to render the script
     var renderScript = function () {
-        d3.queue()
-            .defer(d3.csv, 'data/data.csv')
-            .defer(d3.csv, 'data/characters.csv')
-            .await(function(error, data, namesList) {
+        Promise
+            .all([d3.csv('data/data.csv'), d3.csv('data/characters.csv')])
+            .then(function(data_names) {
+                var data = data_names[0];
+                var namesList = data_names[1];
                 var binSize = document.getElementById('slider-widget').value;
                 var wordCount =  data [(data.length-1)]["ORIGINAL_SCRIPT_WORD_INDEX"];
                 var sectionCount = Math.floor(wordCount/binSize) + 1;
@@ -302,7 +303,7 @@
         var hi = nBins;
         
         var dim = cfTable.dimension(modifyAxis);
-        chart.x(d3.scale.linear().domain([0, hi]));
+        chart.x(d3.scaleLinear().domain([0, hi]));
         chart.xAxisLabel('Script Section');
         chart.xAxis().tickFormat(d3.format("d"));
         chart.dimension(dim);
@@ -414,7 +415,7 @@
                 dc.lineChart(chart)
                 .valueAccessor(accessor.selected)
                 .colors('blue')
-                .interpolate('monotone')
+                .curve(d3.curveMonotoneX)
                 .renderDataPoints({radius: 3, fillOpacity: 0.8, strokeOpacity: 0.8})
                 .renderArea(true)
                 .dashStyle([5,5,5,5])
@@ -425,7 +426,7 @@
                 dc.lineChart(chart)
                 .valueAccessor(accessor.selected)
                 .colors('#D32A3E')
-                .interpolate('monotone')
+                .curve(d3.curveMonotoneX)
                 .useRightYAxis(true)
                 .renderDataPoints({radius: 3, fillOpacity: 0.8, strokeOpacity: 0.8})
                 .group(reduceOnKey(indepDim2, sel2.options[sel2.selectedIndex].value))
@@ -452,7 +453,7 @@
     //normal bar graph is the default view
     var chart = dc.barChart("#main-chart");
     var chart2 = dc.compositeChart("#secondary-chart");
-    d3.csv("data/data.csv", function(error, rawTable) {
+    d3.csv("data/data.csv").then(function(rawTable) {
         var cfTable = crossfilter(rawTable);
         var indepDim = independentAxisBar(cfTable, chart, getTotalWords(rawTable));
         var indepDim2 = independentAxisLine(cfTable, chart2, getTotalWords(rawTable));
