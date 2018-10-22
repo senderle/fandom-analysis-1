@@ -96,26 +96,61 @@
         return filterSel;
     }
 
+    var wordFormatter = function(names) {
+        var punctuation  = [',', '.', '!', '?', '\''];
+        var endpunctuation =  ['.', '!', '?', '"', '...', '....', '--'];
+        var contractions = ['\'ve', '\'m', '\'ll', '\'re', '\'s', '\'t', 'n\'t', 'na'];
+        var capitals = ['i'];
+
+        var formatWord = function(word, character, prevWord, prevChar) {
+            var wordSpan = document.createElement('span');
+            wordSpan.className = 'words';
+
+            if (character != prevChar) {
+                var charSpan = document.createElement('span');
+                charSpan.className = 'character-name';
+                charSpan.append(document.createTextNode(' ' + character + ': '));
+
+                wordSpan.append(document.createElement('br')); //add newline
+                wordSpan.append(charSpan);
+            }
+
+            if (punctuation.includes(word) || contractions.includes(word)) {  
+                //no space before punctuation
+                wordSpan.append(document.createTextNode(word));
+            } else if (prevWord == null || endpunctuation.includes(prevWord)) { 
+                //capitalize first word of sentence
+                wordSpan.append(document.createTextNode(' ' + word[0].toUpperCase() + word.slice(1)));
+            } else if (capitals.includes(word)) { 
+                //format things like 'i'
+                wordSpan.append(document.createTextNode(' ' + word.toUpperCase()));
+            } else if (names.includes(word[0].toUpperCase() + word.slice(1))) { 
+                //format names
+                wordSpan.append(document.createTextNode(' ' + word[0].toUpperCase() + word.slice(1)));
+            } else {
+                //all other words
+                wordSpan.append(document.createTextNode(' ' + word)); 
+            }
+            return wordSpan;
+        };
+        return formatWord;
+    };
+
     //function to render the script
     var renderScript = function () {
-        Promise
-            .all([d3.csv('data/data.csv'), d3.csv('data/characters.csv')])
+        Promise.all([d3.csv('data/data.csv'), d3.csv('data/characters.csv')])
             .then(function(data_names) {
                 var data = data_names[0];
                 var namesList = data_names[1];
                 var binSize = document.getElementById('slider-widget').value;
-                var wordCount =  data [(data.length-1)]["ORIGINAL_SCRIPT_WORD_INDEX"];
+                var wordCount = data[(data.length-1)]["ORIGINAL_SCRIPT_WORD_INDEX"];
                 var sectionCount = Math.floor(wordCount/binSize) + 1;
                 var sectionedScript = document.getElementById('script');
 
-                //for script formatting
-                var punctuation  = [',', '.', '!', '?', '\''];
-                var endpunctuation =  ['.', '!', '?', '"', '...', '....', '--'];
-                var contractions = ['\'ve', '\'m', '\'ll', '\'re', '\'s', '\'t', 'n\'t', 'na'];
-                var capitals = ['i'];
                 for (var i = 0; i < namesList.length; i++) {
                     namesList[i] = namesList[i].Character;
                 }
+                var formatWord = wordFormatter(namesList);
 
                 for (var i = 0; i < sectionCount + 1; i++) {
                     var sectionSpan = document.createElement('span');
@@ -125,34 +160,23 @@
                 }
 
                 for (var j = 0; j < wordCount; j++) {
-                    var selectedWord = data [j]["ORIGINAL_SCRIPT_WORD"];
-                    var wordSpan = document.createElement('span');
-                    wordSpan.className = 'words';
-                    wordSpan.id = 'word-' + j;
-                    //test for empty words
-                    if (selectedWord == '') {
-                        selectedWord = data [j]["LOWERCASE"];
-                    }
-                    var wordIndex = data [j]["ORIGINAL_SCRIPT_WORD_INDEX"];
+                    var character = data[j]["CHARACTER"];
+                    var word = data[j]["ORIGINAL_SCRIPT_WORD"];
+                    if (word == '') { word = data[j]["LOWERCASE"]; }
+
+                    var wordIndex = data[j]["ORIGINAL_SCRIPT_WORD_INDEX"];
                     var section = Math.floor(wordIndex / binSize);
                     var selectedSpan = document.getElementById('script-section-' + section);
-                    //speaker tags
-                    if (j != 0 && (data [j]["CHARACTER"] != data [j-1]["CHARACTER"])) {
-                        wordSpan.append(document.createElement('br')); //add newline
-                        wordSpan.append(document.createTextNode(' ' + data [j]["CHARACTER"] + ': '));
-                    }
-                    //formatting
-                    if (punctuation.includes(selectedWord) || contractions.includes(selectedWord)) {  //no space before punctuation
-                        wordSpan.append(document.createTextNode(selectedWord));
-                    } else if (j != 0 && endpunctuation.includes(data [j-1]["ORIGINAL_SCRIPT_WORD"])) { //capitalize first word of sentence
-                        wordSpan.append(document.createTextNode(' ' + selectedWord[0].toUpperCase() + selectedWord.slice(1)));
-                    } else if (capitals.includes(selectedWord) || j == 0) { //format things like 'i'
-                        wordSpan.append(document.createTextNode(' ' + selectedWord.toUpperCase()));
-                    } else if (namesList.includes(selectedWord[0].toUpperCase() + selectedWord.slice(1))) { //format names
-                        wordSpan.append(document.createTextNode(' ' + selectedWord[0].toUpperCase() + selectedWord.slice(1)));
+
+                    var wordSpan;
+                    if (j == 0) {
+                        wordSpan = formatWord(word, character);
                     } else {
-                        wordSpan.append(document.createTextNode(' ' + selectedWord)); //all other words
+                        var prevChar = data[j - 1]["CHARACTER"];
+                        var prevWord = data[j - 1]["ORIGINAL_SCRIPT_WORD"];
+                        wordSpan = formatWord(word, character, prevWord, prevChar);
                     }
+                    wordSpan.id = 'word-' + j;
                     selectedSpan.append(wordSpan);
                 }
             });

@@ -120,6 +120,11 @@
     background-color: rgba(16, 96, 255, 1.0);
 }
 
+/* override background color for character names */
+span.character-name {
+    background-color: rgba(255, 255, 255, 1.0);
+}
+
 .selected {
     background-color: rgba(255, 80, 25, .6);
 }
